@@ -25,7 +25,6 @@ def get_data():
         print("Время выполнения запроса:", response.elapsed.total_seconds(), "секунд")
         try:
             data = response.json()
-            #print("JSON ответ:", data)
             with open('data.json', 'w', encoding='UTF-8') as file:
                 json.dump(data, file, indent=2, ensure_ascii=False)
                 print(f'Данные сохранены в data.json')
