@@ -66,9 +66,9 @@ def get_data_from_json(json_file):
         promoTextCard = data.get('promoTextCard')
         promoTextCat = data.get('promoTextCat')
         price_details = data.get('sizes', [{}])[0].get('price', {})
-        basic_price = price_details.get('basic')
-        product_price = price_details.get('product')
-        total_price = price_details.get('total')
+        basic_price = (price_details.get('basic') / 100)
+        product_price = (price_details.get('product') / 100)
+        total_price = (price_details.get('total') / 100)
         logistics_price = price_details.get('logistics')
         return_price = price_details.get('return')
 
