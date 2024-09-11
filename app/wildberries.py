@@ -1,5 +1,6 @@
 import requests
 import json
+import time
 
 def get_data():
     urlencode = input('Введите запрос поиска (например, "Телефон"): ')
@@ -19,24 +20,37 @@ def get_data():
         'Priority': 'u=4'
     }
     
-    response = requests.get(url=url, headers=headers)
-    if response.status_code == 200:
-        print("Запрос успешен, статус-код:", response.status_code)
-        print("Время выполнения запроса:", response.elapsed.total_seconds(), "секунд")
+    while True:  # Делаем запросы, пока не выйдем из букса
         try:
-            data = response.json()
-            with open('data.json', 'w', encoding='UTF-8') as file:
-                json.dump(data, file, indent=2, ensure_ascii=False)
-                print(f'Данные сохранены в data.json')
-            return data
-        except ValueError:
-            print("Ответ не является JSON")
-    else:
-        print("Ошибка запроса, статус-код:", response.status_code)
-        print("Время выполнения запроса:", response.elapsed.total_seconds(), "секунд")
-        pass
+            response = requests.get(url, headers=headers).json()
+
+            # проверяем верность запроса по наличию basic_price product_price total_price
+            if 'data' in response and 'products' in response['data']:
+                products = response['data']['products']
+                for product in products:
+                    price_details = product.get('sizes', [{}])[0].get('price', {})
+                    basic_price = price_details.get('basic')
+                    product_price = price_details.get('product')
+                    total_price = price_details.get('total')
+
+                    # если какой-то из этих параметров None делаем снова
+                    if basic_price is not None and product_price is not None and total_price is not None:
+                        with open('wb_poisk_data.json', 'w', encoding='UTF-8') as file:
+                            json.dump(response, file, indent=2, ensure_ascii=False)
+                            print(f'Данные сохранены в wb_poisk_data.json')
+                        return response
+                    else:
+                        print("Ожидаем валидные данные о ценах. Повтор запроса")
+                        time.sleep(2)
+            else:
+                raise ValueError("Неправильный формат ответа JSON")
+
+        except (requests.exceptions.RequestException, ValueError) as e:
+            print(f"Ошибка: {e}. Повтор запроса через 2 секунды")
+            time.sleep(2)
 
 def get_data_from_json(json_file):
+    """Извлекаем из json данные"""
     data_list = []
     for data in json_file['data']['products']:
         id = data.get('id')
@@ -52,9 +66,9 @@ def get_data_from_json(json_file):
         promoTextCard = data.get('promoTextCard')
         promoTextCat = data.get('promoTextCat')
         price_details = data.get('sizes', [{}])[0].get('price', {})
-        basic_price = (price_details.get('basic') / 100)
-        product_price = (price_details.get('product') / 100)
-        total_price = (price_details.get('total') / 100)
+        basic_price = price_details.get('basic')
+        product_price = price_details.get('product')
+        total_price = price_details.get('total')
         logistics_price = price_details.get('logistics')
         return_price = price_details.get('return')
 
