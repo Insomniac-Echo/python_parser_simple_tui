@@ -18,8 +18,6 @@ def parse_start():
             sys.exit()
         elif command in ['back', '3']:
             clear_console()
-            #print("Переход в главное меню")
-            print("Список доступных команд: \n1) help - страница помощи \n2) parse - начало работы \n3) quit - выход")
             break
         else:
             print("Неверная команда.")
