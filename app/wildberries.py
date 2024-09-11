@@ -1,7 +1,7 @@
 import requests
 import json
 
-def category_get():
+def get_data():
     url = 'https://catalog.wb.ru/catalog/men_clothes1/v2/catalog?ab_testing=false&appType=1&cat=8144&curr=rub&dest=-1257786&sort=popular&spp=30'
     
     #Для вб эту штуку я бы сделал более гибкой как и юрл обоссаный, это точно нужно доработать, ибо сейчас он по хардкоженой ссылке срёт
@@ -22,19 +22,20 @@ def category_get():
     response = requests.get(url=url, headers=headers)
     if response.status_code == 200:
         print("Запрос успешен, статус-код:", response.status_code)
-        data = response.json()
-        with open('data.json', 'w', encoding='UTF-8') as file:
-            json.dump(data, file, indent=2, ensure_ascii=False)
-            print(f'Данные сохранены в data.json')
+        print("Время выполнения запроса:", response.elapsed.total_seconds(), "секунд")
+        try:
+            data = response.json()
+            #print("JSON ответ:", data)
+            with open('data.json', 'w', encoding='UTF-8') as file:
+                json.dump(data, file, indent=2, ensure_ascii=False)
+                print(f'Данные сохранены в data.json')
+        except ValueError:
+            print("Ответ не является JSON")
     else:
         print("Ошибка запроса, статус-код:", response.status_code)
+        print("Время выполнения запроса:", response.elapsed.total_seconds(), "секунд")
         pass
-
-def prepare_items(response):
-    products = []
-    
-    products_raw = response.get('data', {}).get('products')
 
 def wb_parser():
     #print("wildberries parser placeholder")
-    category_get()
+    get_data()
