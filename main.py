@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
-from app.start import parse_start
-from app.clear import clear_console
+from app.utils.start import parse_start
+from app.utils.clear import clear_console
 
 def main():
     while True:

@@ -1,10 +1,12 @@
 import requests
 import json
-
-def get_data():
-    urlencode = input('Введите запрос поиска (например, "Телефон"): ')
-    url = fr'https://search.wb.ru/exactmatch/ru/common/v7/search?ab_testid=rerank_ksort_promo&appType=1&curr=rub&dest=-284542&query={urlencode}&resultset=catalog&sort=popular&spp=30&suppressSpellcheck=false'
-
+import time
+import sys
+from entities import InvalidStatusCodeError, InvalidContentJSON, DataValidationError
+       
+def get_data(search_input):
+    url = fr'https://search.wb.ru/exactmatch/ru/common/v7/search?ab_testid=rerank_ksort_promo&appType=1&curr=rub&dest=-284542&query={search_input}&resultset=catalog&sort=popular&spp=30&suppressSpellcheck=false'
+    #url = 'https://httpbin.org/status/404'
     headers = {
         'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64; rv:130.0) Gecko/20100101 Firefox/130.0',
         'Accept': '*/*',
@@ -20,23 +22,42 @@ def get_data():
     }
     
     response = requests.get(url=url, headers=headers)
-    if response.status_code == 200:
-        print("Запрос успешен, статус-код:", response.status_code)
-        print("Время выполнения запроса:", response.elapsed.total_seconds(), "секунд")
-        try:
+    
+    try:
+        if response.status_code == 200:
+            print("Запрос успешен, статус-код:", response.status_code)
+            print("Время выполнения запроса:", response.elapsed.total_seconds(), "секунд")
             data = response.json()
             with open('data.json', 'w', encoding='UTF-8') as file:
-                json.dump(data, file, indent=2, ensure_ascii=False)
-                print(f'Данные сохранены в data.json')
-            return data
-        except ValueError:
-            print("Ответ не является JSON")
-    else:
-        print("Ошибка запроса, статус-код:", response.status_code)
+                    json.dump(data, file, indent=2, ensure_ascii=False)
+                    print(f'Данные сохранены в data.json')
+                    return data
+        else:
+            raise InvalidStatusCodeError("Ошибка запроса, статус-код:", response.status_code)
+    
+    except InvalidStatusCodeError as e:
+        print(f"Исключение: {e}")
         print("Время выполнения запроса:", response.elapsed.total_seconds(), "секунд")
-        pass
+        
+def data_validation(json_file):
+    try:
+        products = json_file['data']['products']
+        for product in products:
+            price_details = product.get('sizes', [{}])[0].get('price', {})
+            basic_price = price_details.get('basic')
+            product_price = price_details.get('product')
+            total_price = price_details.get('total')
 
-def get_data_from_json(json_file):
+            if all([basic_price, product_price, total_price]):
+                return json_file
+            else:
+                raise InvalidContentJSON("Ожидаем валидные данные о ценах. Повтор запроса")
+    
+    except InvalidContentJSON as e:
+        print(f"Исключение: {e}")
+        return False
+
+def get_details_from_json(json_file):
     data_list = []
     for data in json_file['data']['products']:
         id = data.get('id')
@@ -86,5 +107,16 @@ def save_data_to_json(data_list: list, filename: str):
     print(f'Форматированные данные сохранены в {filename}')
 
 def wb_parser():
-    export = get_data_from_json(get_data())
-    save_data_to_json(export, 'extracted_data.json')
+    search_request = input('Введите запрос поиска (например, "Телефон"): ')
+    while True:
+        try:
+            export = data_validation(get_data(search_request))
+            if export is False:
+                raise DataValidationError("Ошибка при получении JSON. Повтор запроса через 3 секунды")
+            else:
+                save_data_to_json(get_details_from_json(export), 'extracted_data.json')
+                sys.exit("Завершение работы.")
+            
+        except DataValidationError as e:
+            print(f"Исключение: {e}")
+            time.sleep(3)
