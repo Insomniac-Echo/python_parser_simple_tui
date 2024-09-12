@@ -1,7 +1,7 @@
 import sys
-from app.ozon import ozon_parser
-from app.wildberries import wb_parser
-from app.clear import clear_console
+from app.ozon.parser import ozon_parser
+from app.wildberries.parser import wb_parser
+from app.utils.clear import clear_console
 
 def parse_start():
     while True:
