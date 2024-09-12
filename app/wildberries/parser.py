@@ -3,6 +3,7 @@ import json
 import time
 import sys
 from app.wildberries.entities import InvalidStatusCodeError, InvalidContentJSON, DataValidationError
+from app.utils.clear import clear_console
        
 def get_data(search_input):
     url = fr'https://search.wb.ru/exactmatch/ru/common/v7/search?ab_testid=rerank_ksort_promo&appType=1&curr=rub&dest=-284542&query={search_input}&resultset=catalog&sort=popular&spp=30&suppressSpellcheck=false'
@@ -119,3 +120,4 @@ def wb_parser():
         except DataValidationError as e:
             print(f"Исключение: {e}")
             time.sleep(3)
+            clear_console()
