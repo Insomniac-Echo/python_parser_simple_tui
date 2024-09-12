@@ -2,7 +2,7 @@ import requests
 import json
 import time
 import sys
-from entities import InvalidStatusCodeError, InvalidContentJSON, DataValidationError
+from app.wildberries.entities import InvalidStatusCodeError, InvalidContentJSON, DataValidationError
        
 def get_data(search_input):
     url = fr'https://search.wb.ru/exactmatch/ru/common/v7/search?ab_testid=rerank_ksort_promo&appType=1&curr=rub&dest=-284542&query={search_input}&resultset=catalog&sort=popular&spp=30&suppressSpellcheck=false'
