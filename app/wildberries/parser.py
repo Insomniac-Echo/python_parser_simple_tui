@@ -6,7 +6,6 @@ from app.wildberries.entities import InvalidStatusCodeError, InvalidContentJSON,
        
 def get_data(search_input):
     url = fr'https://search.wb.ru/exactmatch/ru/common/v7/search?ab_testid=rerank_ksort_promo&appType=1&curr=rub&dest=-284542&query={search_input}&resultset=catalog&sort=popular&spp=30&suppressSpellcheck=false'
-    #url = 'https://httpbin.org/status/404'
     headers = {
         'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64; rv:130.0) Gecko/20100101 Firefox/130.0',
         'Accept': '*/*',
