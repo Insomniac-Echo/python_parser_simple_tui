@@ -4,7 +4,7 @@ class InvalidStatusCodeError(Exception):
         self.message = f"{message} {status_code}"
         super().__init__(self.message)
         
-class InvalidContentJSON(Exception):
+class DecodeJSONError(Exception):
     def __init__(self, message):
         self.message = f"{message}"
         super().__init__(self.message)
@@ -14,3 +14,7 @@ class DataValidationError(Exception):
         self.message = f"{message}"
         super().__init__(self.message)
  
+class InvalidContentJSON(Exception):
+    def __init__(self, message):
+        self.message = f"{message}"
+        super().__init__(self.message)

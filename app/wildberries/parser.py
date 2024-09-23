@@ -1,12 +1,14 @@
-import requests
 import json
-import time
-import sys
-from app.wildberries.entities import InvalidStatusCodeError, InvalidContentJSON, DataValidationError
-from app.utils.clear import clear_console
+import asyncio
+import aiohttp
+from app.wildberries.entities import InvalidStatusCodeError, DecodeJSONError, DataValidationError, InvalidContentJSON
        
-def get_data(search_input):
-    url = fr'https://search.wb.ru/exactmatch/ru/common/v7/search?ab_testid=rerank_ksort_promo&appType=1&curr=rub&dest=-284542&query={search_input}&resultset=catalog&sort=popular&spp=30&suppressSpellcheck=false'
+       
+async def get_data(query):
+    
+    url = fr'https://search.wb.ru/exactmatch/ru/common/v7/search?ab_testid=rerank_ksort_promo&appType=1&curr=rub&dest=-284542&query={query}&resultset=catalog&sort=popular&spp=30&suppressSpellcheck=false'
+    print(url)
+    
     headers = {
         'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64; rv:130.0) Gecko/20100101 Firefox/130.0',
         'Accept': '*/*',
@@ -21,27 +23,50 @@ def get_data(search_input):
         'Priority': 'u=4'
     }
     
-    response = requests.get(url=url, headers=headers)
-    
-    try:
-        if response.status_code == 200:
-            print("Запрос успешен, статус-код:", response.status_code)
-            print("Время выполнения запроса:", response.elapsed.total_seconds(), "секунд")
-            data = response.json()
-            with open('data.json', 'w', encoding='UTF-8') as file:
-                    json.dump(data, file, indent=2, ensure_ascii=False)
-                    print(f'Данные сохранены в data.json')
-                    return data
-        else:
-            raise InvalidStatusCodeError("Ошибка запроса, статус-код:", response.status_code)
-    
-    except InvalidStatusCodeError as e:
-        print(f"Исключение: {e}")
-        print("Время выполнения запроса:", response.elapsed.total_seconds(), "секунд")
+    async with aiohttp.ClientSession() as session:
+        while True:    
+            async with session.get(url, headers=headers) as response:     
+                if response.status == 200:
+                    try:
+                        text = await response.text()
+                        data = json.loads(text)
+                        verify = await data_validation(data)
+                        if verify is not None:
+                            print('Вытащили данные!')
+                            return get_details_from_json(data)  
+                        else:
+                            raise DataValidationError("Неверная выдача запроса. Поторная попытка через 3 секунды.")  
+                    except json.JSONDecodeError:
+                        raise DecodeJSONError("Не удалось декодировать JSON.")
+                    except DataValidationError:
+                        asyncio.sleep(3)
+                else:
+                    raise InvalidStatusCodeError(f"Ошибка запроса, статус-код: {response.status}")
+
         
-def data_validation(json_file):
+async def process_requests(search_queries):
+    tasks = []
+    
+    for query in search_queries:
+        task = asyncio.create_task(get_data(query))
+        tasks.append(task)
+    
+    results = await asyncio.gather(*tasks, return_exceptions=True)
+    
+    processed_results = []
+    for idx, result in enumerate(results):
+        if isinstance(result, Exception):
+            processed_results.append({"query": search_queries[idx], "error": str(result)})
+        else:
+            processed_results.append({"query": search_queries[idx], "data": result})
+    
+    return processed_results
+
+
+async def data_validation(response):
     try:
-        products = json_file['data']['products']
+        print('Проверяем данные!')
+        products = response['data']['products']
         for product in products:
             price_details = product.get('sizes', [{}])[0].get('price', {})
             basic_price = price_details.get('basic')
@@ -49,17 +74,18 @@ def data_validation(json_file):
             total_price = price_details.get('total')
 
             if all([basic_price, product_price, total_price]):
-                return json_file
-            else:
-                raise InvalidContentJSON("Ожидаем валидные данные о ценах. Повтор запроса")
+                return response
+                
+        raise InvalidContentJSON("Ожидаем валидные данные о ценах. Повтор запроса")
     
     except InvalidContentJSON as e:
         print(f"Исключение: {e}")
-        return False
+        return None
 
-def get_details_from_json(json_file):
+def get_details_from_json(response):
+    print('Форматируем данные!')
     data_list = []
-    for data in json_file['data']['products']:
+    for data in response['data']['products']:
         id = data.get('id')
         name = data.get('name')
         cashback = data.get('feedbackPoints')
@@ -100,24 +126,3 @@ def get_details_from_json(json_file):
             'link': f'https://www.wildberries.ru/catalog/{data.get("id")}/detail.aspx?targetUrl=BP'
         })
     return data_list
-
-def save_data_to_json(data_list: list, filename: str):
-    with open(filename, 'w', encoding='UTF-8') as file:
-        json.dump(data_list, file, indent=2, ensure_ascii=False)
-    print(f'Форматированные данные сохранены в {filename}')
-
-def wb_parser():
-    search_request = input('Введите запрос поиска (например, "Телефон"): ')
-    while True:
-        try:
-            export = data_validation(get_data(search_request))
-            if export is False:
-                raise DataValidationError("Ошибка при получении JSON. Повтор запроса через 3 секунды")
-            else:
-                save_data_to_json(get_details_from_json(export), 'extracted_data.json')
-                sys.exit("Завершение работы.")
-            
-        except DataValidationError as e:
-            print(f"Исключение: {e}")
-            time.sleep(3)
-            clear_console()
