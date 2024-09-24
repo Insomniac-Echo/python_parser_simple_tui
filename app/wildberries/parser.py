@@ -39,7 +39,7 @@ async def get_data(query):
                     except json.JSONDecodeError:
                         raise DecodeJSONError("Не удалось декодировать JSON.")
                     except DataValidationError:
-                        asyncio.sleep(3)
+                        await asyncio.sleep(3)
                 else:
                     raise InvalidStatusCodeError(f"Ошибка запроса, статус-код: {response.status}")
 
