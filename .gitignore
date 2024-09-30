@@ -170,3 +170,11 @@ ozon_parsed_data.json
 wb_poisk_data.json
 nowsecure.png
 index.html
+app/yandex/output2.html
+app/yandex/output.html
+app/yandex/yandex.json
+app/yandex/cookies.pkl
+app/yandex/cookies.json
+app/yandex/all_data_json.json
+app/yandex/cookie.py
+app/yandex/curl_cff.py
