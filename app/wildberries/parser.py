@@ -131,7 +131,7 @@ def get_details_from_json(response):
             basket_number = "12"
         elif 1920 <= vol <= 2045:
             basket_number = "13"
-        elif 1921 <= vol <= 2189:
+        elif 2046 <= vol <= 2189:
             basket_number = "14"
         elif 2190 <= vol <= 2405:
             basket_number = "15"         
