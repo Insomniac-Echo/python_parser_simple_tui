@@ -104,6 +104,39 @@ def get_details_from_json(response):
         total_price = (price_details.get('total') / 100)
         logistics_price = price_details.get('logistics')
         return_price = price_details.get('return')
+        vol = id // 100000
+        if 0 <= vol <= 143:
+            basket_number = "01"
+        elif 144 <= vol <= 287:
+            basket_number = "02"
+        elif 288 <= vol <= 431:
+            basket_number = "03"
+        elif 432 <= vol <= 719:
+            basket_number = "04"
+        elif 720 <= vol <= 1007:
+            basket_number = "05"
+        elif 1008 <= vol <= 1061:
+            basket_number = "06"
+        elif 1062 <= vol <= 1115:
+            basket_number = "07"
+        elif 1116 <= vol <= 1169:
+            basket_number = "08"
+        elif 1170 <= vol <= 1313:
+            basket_number = "09"
+        elif 1314 <= vol <= 1601:
+            basket_number = "10"
+        elif 1602 <= vol <= 1655:
+            basket_number = "11"
+        elif 1656 <= vol <= 1919:
+            basket_number = "12"
+        elif 1920 <= vol <= 2045:
+            basket_number = "13"
+        elif 1921 <= vol <= 2189:
+            basket_number = "14"
+        elif 2190 <= vol <= 2405:
+            basket_number = "15"         
+        else:
+            basket_number = "16"
 
         data_list.append({
             'id': id,
@@ -123,6 +156,7 @@ def get_details_from_json(response):
             'total_price': total_price,
             'logistics_price': logistics_price,
             'return_price': return_price,
-            'link': f'https://www.wildberries.ru/catalog/{data.get("id")}/detail.aspx?targetUrl=BP'
+            'link': f'https://www.wildberries.ru/catalog/{data.get("id")}/detail.aspx?targetUrl=BP',
+            'img_url': f"https://basket-" + str(basket_number) + ".wbbasket.ru/vol" + str(id)[:4] + "/part" + str(id)[:6] + "/" + str(id) + "/images/big/1.webp"
         })
     return data_list
