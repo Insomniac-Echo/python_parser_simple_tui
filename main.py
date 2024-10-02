@@ -37,7 +37,7 @@ async def search_multiple_wb(queries: list[str]):
         raise HTTPException(status_code=500, detail=str(e))
     
 @app.get("/search/ozon")
-async def search_single_ozon(query: str):
+def search_single_ozon(query: str):
     try:
         print(query)
         data = ozon_parser(query)
