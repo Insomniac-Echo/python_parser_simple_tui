@@ -1,27 +1,71 @@
-#!/usr/bin/env python3
+from fastapi import FastAPI, HTTPException
+from sbvirtualdisplay import Display
+from contextlib import asynccontextmanager
 
-from app.utils.start import parse_start
-from app.utils.clear import clear_console
-from app.utils.help import show_help
+from app.wildberries.parser import get_data, process_requests
+from app.ozon.parser import ozon_parser
+from app.yandex.parser import yandex_parser
 
-def main():
-    while True:
-        print("Список доступных команд: \n1) help - Страница помощи \n2) parse - Начало работы \n3) quit - Выход")
-        command = input("Введите команду: ")
-        if command in ['help', '1']:
-            clear_console()
-            show_help()
-            input("Нажмите ENTER, чтобы вернуться в главное меню.")
-            clear_console()
-        elif command in ['parse', '2']:
-            parse_start()
-        elif command in ['quit', '3']:
-            clear_console()
-            print("Завершение работы.")
-            break
-        else:
-            clear_console()
-            print("Неизвестная команда.")
-        
-if __name__ == '__main__':
-    main()
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    virtual_display = Display()
+    virtual_display.start()
+    yield
+    virtual_display.stop()
+
+
+app = FastAPI(lifespan=lifespan)
+
+
+@app.get("/search/wb")
+async def search_single_wb(query: str):
+    try:
+        print(query)
+        data = await get_data(query)
+        return {"query": query, "data": data}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/search/wb/multiple")
+async def search_multiple_wb(queries: list[str]):
+    try:
+        results = await process_requests(queries)
+        return results
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    
+@app.get("/search/ozon")
+def search_single_ozon(query: str):
+    try:
+        print(query)
+        data = ozon_parser(query)
+        return {"query": query, "data": data}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/search/ozon/multiple")
+async def search_multiple_ozon(queries: list[str]):
+    try:
+        pass
+    except Exception as e:
+        print(e)
+
+
+@app.get("/search/yandex")
+def search_single_yandex(query: str, limit: int):
+    try:
+        print(query , limit)
+        data = yandex_parser(query, limit)
+        return {"query": query, "limit": limit, "data": data}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/search/yandex/multiple")
+async def search_multiple_yandex(queries: list[str]):
+    try:
+        pass
+    except Exception as e:
+        print(e)
