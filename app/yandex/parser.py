@@ -7,6 +7,7 @@ from urllib.parse import urlparse, parse_qs
 from bs4 import BeautifulSoup
 import pickle
 
+
 def chrome_start():
     options = uc.ChromeOptions()
     options.add_argument("--disable-blink-features=AutomationControlled")
