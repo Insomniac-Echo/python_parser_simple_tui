@@ -1,10 +1,28 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Query
+from sbvirtualdisplay import Display
+from contextlib import asynccontextmanager
+
 from app.wildberries.parser import get_data, process_requests
+from app.ozon.parser import chrome_start, get_searchpage_cards, ozon_parser
+from app.yandex.parser import yandex_parser
 
-app = FastAPI()
+
+virtual_display = None
 
 
-@app.get("/search/wb/{query}")
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    global virtual_display
+    virtual_display = Display()
+    virtual_display.start()
+    yield
+    virtual_display.stop()
+
+
+app = FastAPI(lifespan=lifespan)
+
+
+@app.get("/search/wb")
 async def search(query: str):
     try:
         print(query)
@@ -21,7 +39,30 @@ async def search_multiple(queries: list[str]):
         return results
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+    
+@app.get("/search/ozon/{query}")
+async def search(query: str):
+    try:
+        print(query)
+        data = ozon_parser(query)
+        return {"query": query, "data": data}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
-if __name__ == "__main__":
-    import uvicorn
-    uvicorn.run(app, host="127.0.0.1", port=8000)
+
+@app.post("/search/ozon/multiple")
+async def search_multiple(queries: list[str]):
+    try:
+        pass
+    except:
+        pass
+
+
+@app.get("/search/yandex/{query}")
+def search(query: str):
+    try:
+        print(query)
+        data = yandex_parser(query)
+        return {"query": query, "data": data}
+    except:
+        raise HTTPException(status_code=500, detail="Произошла ошибка при парсинге")
