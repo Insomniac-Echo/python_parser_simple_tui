@@ -121,4 +121,5 @@ def ozon_parser(query):
             break
         except InvalidCardProccesing:
             continue
+    driver.quit()
     return end_list

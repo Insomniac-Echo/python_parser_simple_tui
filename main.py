@@ -36,7 +36,7 @@ async def search_multiple_wb(queries: list[str]):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
     
-@app.get("/search/ozon/{query}")
+@app.get("/search/ozon")
 async def search_single_ozon(query: str):
     try:
         print(query)
@@ -54,7 +54,7 @@ async def search_multiple_ozon(queries: list[str]):
         print(e)
 
 
-@app.get("/search/yandex/{query}{limit}")
+@app.get("/search/yandex")
 def search_single_yandex(query: str, limit: int):
     try:
         print(query , limit)
