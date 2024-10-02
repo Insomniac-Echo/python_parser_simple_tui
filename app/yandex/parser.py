@@ -18,6 +18,7 @@ def chrome_start():
     options.add_argument("--disable-blink-features=AutomationControlled")
     options.add_argument("--disable-blink-features")
     options.set_capability('goog:loggingPrefs', {'performance': 'ALL'})
+    options.add_argument('--disable-dev-shm-usage')        
     driver = uc.Chrome(options=options, version_main=129)
     return driver
 
@@ -123,10 +124,10 @@ def get_searchpage_cards(driver, url, max_cards):
         for link in list(links):
             get_product_info(link, all_data_json, sk_value)
     
-        #with open('all_data_json.json', 'w', encoding='utf-8') as file:
-        #    json.dump(all_data_json, file, indent=2, ensure_ascii=False)
+        with open('all_data_json.json', 'w', encoding='utf-8') as file:
+            json.dump(all_data_json, file, indent=2, ensure_ascii=False)
+        print("Все ответы сохранены в all_data_json.json")
         return all_data_json
-        #print(f'Все ответы сохранены в all_data_json.json')
 
 def get_cookie(driver):
     url = 'https://market.yandex.ru/product--sportivnyi-kostium-muzhskoi-komplekt-troika/605959389?sku=103504567575&uniqueId=161568033&do-waremd5=pPjD0wHYXNmdZFtpXs1PZA&sponsored=1'

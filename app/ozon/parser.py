@@ -23,7 +23,8 @@ def chrome_start(url):
     options.add_argument("user-agent=Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36")
     options.add_argument("--disable-blink-features=AutomationControlled")
     options.add_argument("--disable-blink-features")
-    driver = uc.Chrome(options = options, version_main=128)
+    options.add_argument('--disable-dev-shm-usage')        
+    driver = uc.Chrome(options = options, version_main=129)
     return driver
 
 def scrolldown(driver, deep):

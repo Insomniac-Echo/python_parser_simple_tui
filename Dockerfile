@@ -9,6 +9,21 @@
 ARG PYTHON_VERSION=3.12.4
 FROM python:${PYTHON_VERSION}-slim as base
 
+RUN apt-get update && apt-get install -y \
+    xvfb \
+    fluxbox \
+    x11vnc \
+    x11-apps \  
+    sudo \
+    wget \
+    curl \
+    htop \
+    gnupg
+
+RUN echo "deb [arch=amd64] http://dl.google.com/linux/chrome/deb/ stable main" > /etc/apt/sources.list.d/google-chrome.list
+RUN wget -q -O - https://dl.google.com/linux/linux_signing_key.pub | gpg --dearmor > /etc/apt/trusted.gpg.d/google-chrome.gpg
+RUN apt-get update && apt-get install google-chrome-stable=* -y
+    
 # Prevents Python from writing pyc files.
 ENV PYTHONDONTWRITEBYTECODE=1
 
@@ -24,9 +39,8 @@ ARG UID=10001
 RUN adduser \
     --disabled-password \
     --gecos "" \
-    --home "/nonexistent" \
+    --home "/home/appuser" \
     --shell "/sbin/nologin" \
-    --no-create-home \
     --uid "${UID}" \
     appuser
 
@@ -41,11 +55,15 @@ RUN --mount=type=cache,target=/root/.cache/pip \
 # Switch to the non-privileged user to run the application.
 USER appuser
 
+
 # Copy the source code into the container.
 COPY . .
+
 
 # Expose the port that the application listens on.
 EXPOSE 8000
 
+RUN Xvfb :99 -screen 0 1600x900x24 > /dev/null 2>&1 & \
+    export DISPLAY=:99
 # Run the application.
 CMD ["fastapi", "run", "main.py", "--port", "8000"]
