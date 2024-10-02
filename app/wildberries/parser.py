@@ -2,10 +2,25 @@ import json
 import asyncio
 import aiohttp
 from app.wildberries.entities import InvalidStatusCodeError, DecodeJSONError, DataValidationError, InvalidContentJSON
-       
-       
+
+async def get_description(session, id, basket_number):
+    if basket_number in ["01"]:
+        url = f"https://basket-{basket_number}.wbbasket.ru/vol{str(id)[:2]}/part{str(id)[:4]}/{str(id)}/info/ru/card.json"
+    elif basket_number in ["02", "03", "04", "05"]:
+        url = f"https://basket-{basket_number}.wbbasket.ru/vol{str(id)[:3]}/part{str(id)[:5]}/{str(id)}/info/ru/card.json"
+    else:
+        url = f"https://basket-{basket_number}.wbbasket.ru/vol{str(id)[:4]}/part{str(id)[:6]}/{str(id)}/info/ru/card.json"
+
+    async with session.get(url) as response:
+        if response.status != 200:
+            return None
+        desc = await response.json()
+        if "description" in desc:
+            return desc["description"]
+        else:
+            return None
+
 async def get_data(query):
-    
     url = fr'https://search.wb.ru/exactmatch/ru/common/v7/search?ab_testid=rerank_ksort_promo&appType=1&curr=rub&dest=-284542&query={query}&resultset=catalog&sort=popular&spp=30&suppressSpellcheck=false'
     print(url)
     
@@ -33,7 +48,7 @@ async def get_data(query):
                         verify = await data_validation(data)
                         if verify is not None:
                             print('Вытащили данные!')
-                            return get_details_from_json(data)  
+                            return await get_details_from_json(session, data)  
                         else:
                             raise DataValidationError("Неверная выдача запроса. Поторная попытка через 3 секунды.")  
                     except json.JSONDecodeError:
@@ -43,7 +58,6 @@ async def get_data(query):
                 else:
                     raise InvalidStatusCodeError(f"Ошибка запроса, статус-код: {response.status}")
 
-        
 async def process_requests(search_queries):
     tasks = []
     
@@ -61,7 +75,6 @@ async def process_requests(search_queries):
             processed_results.append({"query": search_queries[idx], "data": result})
     
     return processed_results
-
 
 async def data_validation(response):
     try:
@@ -82,7 +95,7 @@ async def data_validation(response):
         print(f"Исключение: {e}")
         return None
 
-def get_details_from_json(response):
+async def get_details_from_json(session, response):
     print('Форматируем данные!')
     data_list = []
     for data in response['data']['products']:
@@ -106,15 +119,15 @@ def get_details_from_json(response):
         return_price = price_details.get('return')
         vol = id // 100000
         if 0 <= vol <= 143:
-            basket_number = "01"
+            basket_number = "01"#
         elif 144 <= vol <= 287:
-            basket_number = "02"
+            basket_number = "02"#
         elif 288 <= vol <= 431:
-            basket_number = "03"
+            basket_number = "03"#
         elif 432 <= vol <= 719:
-            basket_number = "04"
+            basket_number = "04"#
         elif 720 <= vol <= 1007:
-            basket_number = "05"
+            basket_number = "05"#
         elif 1008 <= vol <= 1061:
             basket_number = "06"
         elif 1062 <= vol <= 1115:
@@ -138,8 +151,17 @@ def get_details_from_json(response):
         else:
             basket_number = "16"
 
+        description = await get_description(session, id, basket_number)
+
+        if basket_number in ["01"]:
+            img_url = f"https://basket-{basket_number}.wbbasket.ru/vol{str(id)[:2]}/part{str(id)[:4]}/{str(id)}/images/big/1.webp"
+        elif basket_number in ["02", "03", "04", "05"]:
+            img_url = f"https://basket-{basket_number}.wbbasket.ru/vol{str(id)[:3]}/part{str(id)[:5]}/{str(id)}/images/big/1.webp"
+        else:
+            img_url = f"https://basket-{basket_number}.wbbasket.ru/vol{str(id)[:4]}/part{str(id)[:6]}/{str(id)}/images/big/1.webp"
+
         data_list.append({
-            'id': id,
+            'id_src': id,
             'name': name,
             'cashback': cashback,
             'sale': sale,
@@ -157,6 +179,7 @@ def get_details_from_json(response):
             'logistics_price': logistics_price,
             'return_price': return_price,
             'link': f'https://www.wildberries.ru/catalog/{data.get("id")}/detail.aspx?targetUrl=BP',
-            'img_url': "https://basket-" + str(basket_number) + ".wbbasket.ru/vol" + str(id)[:4] + "/part" + str(id)[:6] + "/" + str(id) + "/images/big/1.webp"
+            'img_url': img_url,
+            'description': description
         })
     return data_list
