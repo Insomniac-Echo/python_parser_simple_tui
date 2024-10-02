@@ -157,6 +157,6 @@ def get_details_from_json(response):
             'logistics_price': logistics_price,
             'return_price': return_price,
             'link': f'https://www.wildberries.ru/catalog/{data.get("id")}/detail.aspx?targetUrl=BP',
-            'img_url': f"https://basket-" + str(basket_number) + ".wbbasket.ru/vol" + str(id)[:4] + "/part" + str(id)[:6] + "/" + str(id) + "/images/big/1.webp"
+            'img_url': "https://basket-" + str(basket_number) + ".wbbasket.ru/vol" + str(id)[:4] + "/part" + str(id)[:6] + "/" + str(id) + "/images/big/1.webp"
         })
     return data_list

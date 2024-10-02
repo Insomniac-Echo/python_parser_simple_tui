@@ -24,7 +24,7 @@ def chrome_start():
 def scrolldown(driver, deep):
     for _ in range(deep):
         driver.execute_script('window.scrollBy(0, 500)')
-        time.sleep(0.17)
+        time.sleep(0.5)
 
 def get_product_info(full_link, all_data_json, sk_value):
     product_id, business_id, sku_id = extract_ids_from_link(full_link)
@@ -96,11 +96,13 @@ def extract_ids_from_link(link):
     return product_id, business_id, sku_id
 
 
-def get_searchpage_cards(driver, url):
+def get_searchpage_cards(driver, url, max_cards):
     driver.get(url)
     scrolldown(driver, 10)
     search_page_html = BeautifulSoup(driver.page_source, "html.parser")
     content = search_page_html.find_all(attrs={"data-auto": "snippet-link"})
+    print(f"Найдено {len(content)} карточек товаров на странице")
+    print(content[0].prettify())
 
     if len(content) >= 3:
         links = set()  # set фильтрует повторяющиеся линки(охуеть!)
@@ -110,19 +112,21 @@ def get_searchpage_cards(driver, url):
                     href = a_tag['href'] 
                     if href.startswith('/product'):
                         links.add(href)
+                        if len(links) >= max_cards:
+                            break
 
         all_data_json = []
 
         sk_value = get_cookie(driver)
         time.sleep(3)
 
-        for link in links:
+        for link in list(links):
             get_product_info(link, all_data_json, sk_value)
     
-        with open('all_data_json.json', 'w', encoding='utf-8') as file:
-            json.dump(all_data_json, file, indent=2, ensure_ascii=False)
-
-        print(f'Все ответы сохранены в all_data_json.json')
+        #with open('all_data_json.json', 'w', encoding='utf-8') as file:
+        #    json.dump(all_data_json, file, indent=2, ensure_ascii=False)
+        return all_data_json
+        #print(f'Все ответы сохранены в all_data_json.json')
 
 def get_cookie(driver):
     url = 'https://market.yandex.ru/product--sportivnyi-kostium-muzhskoi-komplekt-troika/605959389?sku=103504567575&uniqueId=161568033&do-waremd5=pPjD0wHYXNmdZFtpXs1PZA&sponsored=1'
@@ -162,17 +166,14 @@ def capture_post_request(driver):
     driver.quit()
     return sk_value
 
-def yandex_parser():
-    search_tag = input('Введите запрос поиска (например, "Телефон"): ')
+def yandex_parser(query, limit):
     driver = chrome_start()
     while True:
-        url_search = f"https://market.yandex.ru/search?text={search_tag}"
+        url_search = f"https://market.yandex.ru/search?text={query}"
         try:
-            get_searchpage_cards(driver, url_search)
+            data = get_searchpage_cards(driver, url_search, limit)
             break
-        except:
-            print("Я упал на", search_tag)
-
-if __name__ == '__main__':
-    yandex_parser()
+        except Exception:
+            print("Я упал на", query)
+    return data
 

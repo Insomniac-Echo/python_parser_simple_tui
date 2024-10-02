@@ -5,6 +5,14 @@ import json
 from urllib.parse import urlparse, urlunparse
 from bs4 import BeautifulSoup
 
+
+class InvalidCardProccesing(Exception):
+    def __init__(self, message, query):
+        self.query = query
+        self.message = f"{message} {query}"
+        super().__init__(self.message)
+
+
 def chrome_start(url):
     options = uc.ChromeOptions()
     options.add_argument("--disable-blink-features=AutomationControlled")
@@ -94,67 +102,23 @@ def get_searchpage_cards(driver, url, all_cards=[]):
         return all_cards
 
 
-# def get_mainpage_cards(driver, url):
-#     driver.get(url)
-#     scrolldown(driver, 50)
-#     main_page_html = BeautifulSoup(driver.page_source, "html.parser")
-#     fresh_island_elements = main_page_html.find_all(attrs={"data-widget": "freshIsland"}) #ищем "data-widget": "freshIsland"
-#     last_fresh_island_element = fresh_island_elements[-1] if fresh_island_elements else None #берем последний элемент data-widget="freshIsland"
-    
-#     if last_fresh_island_element:
-#         # ищем третий div с class="t4j_23" и data-widget="skuGridSimple"
-#         sku_grid_div = main_page_html.find_all(attrs={"data-widget": "skuGridSimple"})
-        
-#         if len(sku_grid_div) >= 3:
-#             links = set()  # set фильтрует повторяющиеся линки(охуеть!)
-#             for div in main_page_html.find_all('div'): #ищем все дивы
-#                 if div.find('span', class_='tsBody500Medium'): #в этих дивах ищем спан с классом tsBody500Medium
-#                     a_tag = div.find('a', href=True) # ищем а тэг с href
-#                     if a_tag and 'href' in a_tag.attrs:
-#                         links.add(a_tag['href'])       
-#
-#             all_cards = list()
-#             for link in links:
-#                 try:
-#                     product_url = "https://ozon.ru" + link
-#                     product_id, full_name, description, price, rating, rating_counter, image_url = get_product_info(link)
-#                     card_info = {product_id: {
-#                         "short_name": full_name,
-#                         "full_name": full_name,
-#                         "description": description,
-#                         "url": product_url,
-#                         "rating": rating,
-#                         "rating_counter": rating_counter,
-#                         "price": price,
-#                         "image_url": image_url
-#                     }}
-#                     all_cards.append(card_info)
-#                     print(product_id, "- DONE")
-#                 except Exception as e:
-#                     print(f"Error processing card: {link}")
-#                     print(f"Error message: {e}")
-#                 # print(card_info)    
-#             return all_cards
-
 def save_to_json(data, filename="parsed_data.json"):
     with open(filename, 'w', encoding='utf-8') as file:
         json.dump(data, file, indent=2, ensure_ascii=False)
     print(f'Форматированные данные сохранены в {filename}')
 
-def ozon_parser():
-    # get_product_info()
+
+def ozon_parser(query):
     url = "https://ozon.ru/"
     driver = chrome_start(url)
     end_list = list()
-    search_tag = input('Введите запрос поиска (например, "Телефон"): ')
     while True:
-        url_search = f"https://www.ozon.ru/search/?text={search_tag}&from_global=true"
+        url_search = f"https://www.ozon.ru/search/?text={query}&from_global=true"
         try:
             search_cards = get_searchpage_cards(driver, url_search)
-            print("Я успешно нашёл", len(search_cards), "по поиску", search_tag)
-            end_list.append({search_tag: search_cards})
+            print("Я успешно нашёл", len(search_cards), "по поиску", query)
+            end_list.append({query: search_cards})
             break
-        except:
-            print("Я упал на", search_tag)
-    save_to_json(end_list, "ozon_parsed_data.json")
-    # get_mainpage_cards(driver, url)
+        except InvalidCardProccesing:
+            continue
+    return end_list

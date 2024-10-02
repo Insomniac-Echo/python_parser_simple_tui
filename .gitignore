@@ -178,3 +178,6 @@ app/yandex/cookies.json
 app/yandex/all_data_json.json
 app/yandex/cookie.py
 app/yandex/curl_cff.py
+.vscode/settings.json
+all_data_json.json
+cookies.pkl
