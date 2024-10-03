@@ -57,7 +57,7 @@ USER appuser
 
 
 # Copy the source code into the container.
-COPY . .
+COPY --chown=appuser:appuser --chmod=755 . .
 
 
 # Expose the port that the application listens on.
