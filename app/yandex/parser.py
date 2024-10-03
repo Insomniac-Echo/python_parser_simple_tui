@@ -6,6 +6,7 @@ import json
 from urllib.parse import urlparse, parse_qs
 from bs4 import BeautifulSoup
 import pickle
+import traceback
 
 
 def chrome_start():
@@ -123,7 +124,11 @@ def get_searchpage_cards(driver, url, max_cards):
         time.sleep(3)
 
         for link in list(links):
-            get_product_info(link, all_data_json, sk_value)
+            try:
+                get_product_info(link, all_data_json, sk_value)
+            except Exception as e:
+                print(f"Error processing link {link}: {e}")
+                print(f"Traceback: {traceback.format_exc()}")
     
         with open('all_data_json.json', 'w', encoding='utf-8') as file:
             json.dump(all_data_json, file, indent=2, ensure_ascii=False)
@@ -175,7 +180,11 @@ def yandex_parser(query, limit):
         try:
             data = get_searchpage_cards(driver, url_search, limit)
             break
-        except Exception:
-            print("Я упал на", query)
+        except Exception as e:
+            print(f"Я упал на {query}")
+            print(f"Exception details: {e}")
+            print(f"Traceback: {traceback.format_exc()}")
+            driver.quit()
+            return None
     return data
 
