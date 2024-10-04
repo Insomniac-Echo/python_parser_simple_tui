@@ -33,10 +33,11 @@ def scrolldown(driver, deep):
         driver.execute_script('window.scrollBy(0, 500)')
         time.sleep(0.5)
 
-def get_product_info(full_link, all_data_json, sk_value):
+def get_product_info(full_link, sk_value):
     product_id, business_id, sku_id = extract_ids_from_link(full_link)
     if not product_id or not business_id or not sku_id:
         logger.error(f"Error extracting data from link: {full_link}")
+        return None
 
     session = requests.Session()
     url = 'https://market.yandex.ru/api/resolve/?r=src/resolvers/productPage/resolveProductCardRemote:resolveProductCardRemote'
@@ -84,15 +85,15 @@ def get_product_info(full_link, all_data_json, sk_value):
     response = session.post(url, impersonate="chrome", cookies=cookie2, headers=headers, data=json.dumps(data))
     if response.status_code == 200:
         try:
-            parsed_response = response.json()
-            formatted_data = get_details_from_json(parsed_response, full_link)
-            all_data_json.append(formatted_data)
+            return response.json()
         except json.JSONDecodeError:
             logger.error("JSON decode error.")
             logger.error(f"Response text: {response.text}")
+            return None
     else:
         logger.error(f"Status code error: {response.status_code}")
         logger.error(f"Response text: {response.text}")
+        return None
 
 
 def extract_ids_from_link(link):
@@ -112,27 +113,35 @@ def get_searchpage_cards(driver, url, max_cards):
     logger.info(f"Found {len(content)} product cards on page.")
 
     if len(content) >= 3:
-        links = set()  # set фильтрует повторяющиеся линки(охуеть!)
+        links = set() # set фильтрует повторяющиеся линки(охуеть!)
         for div in search_page_html.find_all('div'): #ищем все дивы
                 a_tag = div.find('a', href=True) # ищем а тэг с href
                 if a_tag and 'href' in a_tag.attrs:
-                    href = a_tag['href'] 
+                    href = a_tag['href']
                     if href.startswith('/product'):
                         links.add(href)
                         if len(links) >= max_cards:
                             break
 
         all_data_json = []
+        responses = []
 
         sk_value = get_cookie(driver)
         time.sleep(3)
 
         for link in list(links):
             try:
-                get_product_info(link, all_data_json, sk_value)
+                response = get_product_info(link, sk_value)
+                if response:
+                    responses.append((response, link))
             except Exception as e:
                 logger.error(f"Error processing link: {e}")
                 logger.error(f"Traceback: {traceback.format_exc()}")
+
+        for response, link in responses:
+            formatted_data = get_details_from_json(response, link)
+            all_data_json.append(formatted_data)
+        logger.info('Данные отформатированы!')
 
         return all_data_json
 
@@ -165,7 +174,6 @@ def capture_post_request(driver):
                 request = params['request']
                 if request['method'] == 'POST' and request['url'] == 'https://market.yandex.ru/api/resolve/?r=src/resolvers/productPage/resolveProductCardRemote:resolveProductCardRemote':
                     headers = request['headers']
-                    
                     sk_value = headers.get('sk')
                     if sk_value:
                         logger.info(f"Extracting sk: {sk_value}")
@@ -175,7 +183,6 @@ def capture_post_request(driver):
     return sk_value
 
 def get_details_from_json(response, full_link):
-    print('Форматируем данные!')
     data_list = []
     
     for result in response.get('results', []):
@@ -183,7 +190,6 @@ def get_details_from_json(response, full_link):
         description = result.get('data', {}).get('collections', {}).get('fullDescription', {})
         image = result.get('data', {}).get('collections', {}).get('productCardMeta', {})
 
-        # Extract data from buyOption
         for key, value in buy_option.items():
             id = value.get('productId')
             name = value.get('title')
@@ -192,7 +198,6 @@ def get_details_from_json(response, full_link):
             delivery_text = value.get('deliveryText')
             base_price = value.get('basePrice', {}).get('value')
         
-        # Extract fullDescription text
         description_text = None
         for key, value in description.items():
             description_text = value.get('text')
@@ -247,4 +252,3 @@ def yandex_parser(query, limit):
                 break
     logger.info("Parse Ya.Market operation successfull. Sending data.")
     return data
-
