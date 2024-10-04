@@ -42,13 +42,12 @@ def get_product_info(product_url):
         description = script_data.get("description", None)
         image_url = script_data.get("image", None)
         brand = script_data.get("brand", None)
-        id_src = script_data.get("sku", None)
         price = script_data["offers"].get("price", "N/A") + " " + script_data["offers"].get("priceCurrency", "N/A")
         rating = script_data.get("aggregateRating", {}).get("ratingValue", None)
         rating_counter = script_data.get("aggregateRating", {}).get("reviewCount", None)
         product_id = script_data.get("sku", None)
 
-        return (id_src, brand, product_id, full_name, description, price, rating, rating_counter, image_url)
+        return (brand, product_id, full_name, description, price, rating, rating_counter, image_url)
 
 def clean_url(url):#чистим говняные ссылки
     parsed_url = urlparse(url)
@@ -76,17 +75,15 @@ def get_searchpage_cards(driver, url, all_cards=[]):
 
             clean_card_url = clean_url(card_url)
             product_url = "https://ozon.ru" + clean_card_url
-
-            id_src, brand, product_id, full_name, description, price, rating, rating_counter, image_url = get_product_info(clean_card_url)# прилетает кортеж из 7 элементов и присваивается данным переменным
-            card_info = {product_id: {"id_src": id_src,
+            brand, product_id, full_name, description, price, rating, rating_counter, image_url = get_product_info(clean_card_url)# прилетает кортеж из 7 элементов и присваивается данным переменным
+            card_info = {product_id: {"id_src": product_id,
                                       "short_name": card_name,
                                       "name": full_name,
                                       "brand": brand,
-                                      "link": product_url,
                                       "reviewRating": rating,
                                       "feedbacks": rating_counter,
                                       "product_price": price,
-                                      "link":clean_card_url,
+                                      "link":product_url,
                                       "img_url": image_url,
                                       "description": description
                                       }
