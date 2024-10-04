@@ -4,19 +4,15 @@ import time
 import json
 from urllib.parse import urlparse, urlunparse
 from bs4 import BeautifulSoup
+from app.ozon.entities import InvalidCardProccesing
+from app.utils.app_logger import get_logger
 
-
-class InvalidCardProccesing(Exception):
-    def __init__(self, message, query):
-        self.query = query
-        self.message = f"{message} {query}"
-        super().__init__(self.message)
-
+logger = get_logger(__name__)
 
 def chrome_start(url):
+    logger.info("Chrome init.")
     options = uc.ChromeOptions()
     options.add_argument("--disable-blink-features=AutomationControlled")
-    # options.add_argument("--headless")
     options.add_argument("--log-level=3")
     options.add_argument("--start-maximized")
     options.add_argument("--no-sandbox")
@@ -58,6 +54,7 @@ def clean_url(url):#чистим говняные ссылки
     return clean_url
 
 def get_searchpage_cards(driver, url, all_cards=[]):
+    logger.info("Gathering product card info.")
     driver.get(url)
     scrolldown(driver, 50)
     search_page_html = BeautifulSoup(driver.page_source, "html.parser")
@@ -69,6 +66,7 @@ def get_searchpage_cards(driver, url, all_cards=[]):
     content_with_cards = content_with_cards.find("div").findChildren(recursive=False)
 
     cards_in_page = list()
+    logger.info("Starting gathering product information.")
     for card in content_with_cards:
         try:
             card_url = card.find("a", href=True)["href"]
@@ -89,10 +87,9 @@ def get_searchpage_cards(driver, url, all_cards=[]):
                                       }
                          }
             cards_in_page.append(card_info)
-            print(product_id, "- DONE")
         except Exception as e:
-            print(f"Error processing card: {card}")
-            print(f"Error message: {e}")
+            logger.warning(f"Error processing card: {card}")
+            logger.error(f"Error message: {e}")
 
     content_with_next = [div for div in content.find_all("a", href=True) if "Дальше" in str(div)]
     if not content_with_next:
@@ -102,25 +99,25 @@ def get_searchpage_cards(driver, url, all_cards=[]):
         all_cards.extend(get_searchpage_cards(driver, next_page_url, cards_in_page))
         return all_cards
 
-
-def save_to_json(data, filename="parsed_data.json"):
-    with open(filename, 'w', encoding='utf-8') as file:
-        json.dump(data, file, indent=2, ensure_ascii=False)
-    print(f'Форматированные данные сохранены в {filename}')
-
-
 def ozon_parser(query):
+    
     url = "https://ozon.ru/"
-    driver = chrome_start(url)
     end_list = list()
+    
+    logger.info("Starting Chrome session.")
+    driver = chrome_start(url)
+    
     while True:
         url_search = f"https://www.ozon.ru/search/?text={query}&from_global=true"
         try:
             search_cards = get_searchpage_cards(driver, url_search)
-            print("Я успешно нашёл", len(search_cards), "по поиску", query)
+            cards_quantity = len(search_cards)
+            logger.info(f"Successfully found {cards_quantity} by search request {query}")
             end_list.append({query: search_cards})
             break
         except InvalidCardProccesing:
-            continue
+            logger.error("Product card processing error.")
     driver.quit()
+    
+    logger.info("Parse Ozon operation successfull. Sending data.")
     return end_list

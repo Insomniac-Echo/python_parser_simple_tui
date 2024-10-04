@@ -1,7 +1,12 @@
 import json
 import asyncio
 import aiohttp
-from app.wildberries.entities import InvalidStatusCodeError, DecodeJSONError, DataValidationError, InvalidContentJSON
+
+
+from app.wildberries.entities import DataValidationError, InvalidContentJSON
+from app.utils.app_logger import get_logger
+
+logger = get_logger(__name__)
 
 async def get_description(session, id, basket_number):
     if basket_number in ["01"]:
@@ -13,16 +18,20 @@ async def get_description(session, id, basket_number):
 
     async with session.get(url) as response:
         if response.status != 200:
+            logger.warning("Status code other than 200. Local or Server error?")
             return None
+        
         desc = await response.json()
+        
         if "description" in desc:
             return desc["description"]
         else:
+            logger.warning("Description not found.")
             return None
 
 async def get_data(query):
+    
     url = fr'https://search.wb.ru/exactmatch/ru/common/v7/search?ab_testid=rerank_ksort_promo&appType=1&curr=rub&dest=-284542&query={query}&resultset=catalog&sort=popular&spp=30&suppressSpellcheck=false'
-    print(url)
     
     headers = {
         'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64; rv:130.0) Gecko/20100101 Firefox/130.0',
@@ -47,16 +56,17 @@ async def get_data(query):
                         data = json.loads(text)
                         verify = await data_validation(data)
                         if verify is not None:
-                            print('Вытащили данные!')
+                            logger.info("Success data extraction.")
                             return await get_details_from_json(session, data)  
                         else:
-                            raise DataValidationError("Неверная выдача запроса. Поторная попытка через 3 секунды.")  
+                            raise DataValidationError()  
                     except json.JSONDecodeError:
-                        raise DecodeJSONError("Не удалось декодировать JSON.")
+                        logger.error("JSON decode error.")
                     except DataValidationError:
+                        logger.error("Data validation error, restart in 3 seconds.")
                         await asyncio.sleep(3)
                 else:
-                    raise InvalidStatusCodeError(f"Ошибка запроса, статус-код: {response.status}")
+                    logger.error(f"Request error, status code is {response.status}")
 
 async def process_requests(search_queries):
     tasks = []
@@ -78,7 +88,7 @@ async def process_requests(search_queries):
 
 async def data_validation(response):
     try:
-        print('Проверяем данные!')
+        logger.info("Validating extracted data.")
         products = response['data']['products']
         for product in products:
             price_details = product.get('sizes', [{}])[0].get('price', {})
@@ -89,14 +99,49 @@ async def data_validation(response):
             if all([basic_price, product_price, total_price]):
                 return response
                 
-        raise InvalidContentJSON("Ожидаем валидные данные о ценах. Повтор запроса")
+        raise InvalidContentJSON()
     
-    except InvalidContentJSON as e:
-        print(f"Исключение: {e}")
+    except InvalidContentJSON:
+        logger.error("Invalid JSON content.")
         return None
 
+def get_basket_number(id):
+    vol = id // 100000
+    if 0 <= vol <= 143:
+        return "01"
+    elif 144 <= vol <= 287:
+        return "02"
+    elif 288 <= vol <= 431:
+        return "03"
+    elif 432 <= vol <= 719:
+        return "04"
+    elif 720 <= vol <= 1007:
+        return "05"
+    elif 1008 <= vol <= 1061:
+        return "06"
+    elif 1062 <= vol <= 1115:
+        return "07"
+    elif 1116 <= vol <= 1169:
+        return "08"
+    elif 1170 <= vol <= 1313:
+        return "09"
+    elif 1314 <= vol <= 1601:
+        return "10"
+    elif 1602 <= vol <= 1655:
+        return "11"
+    elif 1656 <= vol <= 1919:
+        return "12"
+    elif 1920 <= vol <= 2045:
+        return "13"
+    elif 2046 <= vol <= 2189:
+        return "14"
+    elif 2190 <= vol <= 2405:
+        return "15"         
+    else:
+        return "16"
+
 async def get_details_from_json(session, response):
-    print('Форматируем данные!')
+    logger.info("Formatting data.")
     data_list = []
     for data in response['data']['products']:
         id = data.get('id')
@@ -117,40 +162,7 @@ async def get_details_from_json(session, response):
         total_price = (price_details.get('total') / 100)
         logistics_price = price_details.get('logistics')
         return_price = price_details.get('return')
-        vol = id // 100000
-        if 0 <= vol <= 143:
-            basket_number = "01"#
-        elif 144 <= vol <= 287:
-            basket_number = "02"#
-        elif 288 <= vol <= 431:
-            basket_number = "03"#
-        elif 432 <= vol <= 719:
-            basket_number = "04"#
-        elif 720 <= vol <= 1007:
-            basket_number = "05"#
-        elif 1008 <= vol <= 1061:
-            basket_number = "06"
-        elif 1062 <= vol <= 1115:
-            basket_number = "07"
-        elif 1116 <= vol <= 1169:
-            basket_number = "08"
-        elif 1170 <= vol <= 1313:
-            basket_number = "09"
-        elif 1314 <= vol <= 1601:
-            basket_number = "10"
-        elif 1602 <= vol <= 1655:
-            basket_number = "11"
-        elif 1656 <= vol <= 1919:
-            basket_number = "12"
-        elif 1920 <= vol <= 2045:
-            basket_number = "13"
-        elif 2046 <= vol <= 2189:
-            basket_number = "14"
-        elif 2190 <= vol <= 2405:
-            basket_number = "15"         
-        else:
-            basket_number = "16"
-
+        basket_number = get_basket_number(id)
         description = await get_description(session, id, basket_number)
 
         if basket_number in ["01"]:
@@ -182,4 +194,5 @@ async def get_details_from_json(session, response):
             'img_url': img_url,
             'description': description
         })
+    logger.info("Parse Wildberries operation successfull. Sending data.")
     return data_list

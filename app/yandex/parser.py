@@ -8,11 +8,15 @@ from bs4 import BeautifulSoup
 import pickle
 import traceback
 
+from app.utils.app_logger import get_logger
+
+logger = get_logger(__name__)
+
 
 def chrome_start():
+    logger.info("Chrome init.")
     options = uc.ChromeOptions()
     options.add_argument("--disable-blink-features=AutomationControlled")
-    # options.add_argument("--headless")
     options.add_argument("--log-level=3")
     options.add_argument("--start-maximized")
     options.add_argument("--no-sandbox")
@@ -32,7 +36,7 @@ def scrolldown(driver, deep):
 def get_product_info(full_link, all_data_json, sk_value):
     product_id, business_id, sku_id = extract_ids_from_link(full_link)
     if not product_id or not business_id or not sku_id:
-        print("я еблан и ничего не извлек из ссылки:", full_link)
+        logger.error("Error extracting data from link: ", full_link)
 
     session = requests.Session()
     url = 'https://market.yandex.ru/api/resolve/?r=src/resolvers/productPage/resolveProductCardRemote:resolveProductCardRemote'
@@ -83,11 +87,11 @@ def get_product_info(full_link, all_data_json, sk_value):
             parsed_response = response.json()
             all_data_json.append(parsed_response)
         except json.JSONDecodeError:
-            print("говно переделывай сука")
-            print("Ответ текстовый:", response.text)
+            logger.error("JSON decode error.")
+            logger.error("Response text: ", response.text)
     else:
-        print(f"Запрос наебнулся с кодом: {response.status_code}")
-        print("Ответ текстовый:", response.text)
+        logger.error("Status code error: ", response.status_code)
+        logger.error("Response text: ", response.text)
 
 
 def extract_ids_from_link(link):
@@ -104,8 +108,7 @@ def get_searchpage_cards(driver, url, max_cards):
     scrolldown(driver, 10)
     search_page_html = BeautifulSoup(driver.page_source, "html.parser")
     content = search_page_html.find_all(attrs={"data-auto": "snippet-link"})
-    print(f"Найдено {len(content)} карточек товаров на странице")
-    print(content[0].prettify())
+    logger.info(f"Found {len(content)} product cards on page.")
 
     if len(content) >= 3:
         links = set()  # set фильтрует повторяющиеся линки(охуеть!)
@@ -127,12 +130,9 @@ def get_searchpage_cards(driver, url, max_cards):
             try:
                 get_product_info(link, all_data_json, sk_value)
             except Exception as e:
-                print(f"Error processing link {link}: {e}")
-                print(f"Traceback: {traceback.format_exc()}")
-    
-        with open('all_data_json.json', 'w', encoding='utf-8') as file:
-            json.dump(all_data_json, file, indent=2, ensure_ascii=False)
-        print("Все ответы сохранены в all_data_json.json")
+                logger.error(f"Error processing link {link}: {e}")
+                logger.error(f"Traceback: {traceback.format_exc()}")
+
         return all_data_json
 
 def get_cookie(driver):
@@ -167,24 +167,35 @@ def capture_post_request(driver):
                     
                     sk_value = headers.get('sk')
                     if sk_value:
-                        print(f"Все кайф я вытащил sk!: {sk_value}")
+                        logger.info(f"Extracting sk: {sk_value}")
                         break
     
     driver.quit()
     return sk_value
 
 def yandex_parser(query, limit):
+    logger.info("Starting Chrome Session")
     driver = chrome_start()
+    logger.info("Starting gathering product information.")
     while True:
+        count = 0
         url_search = f"https://market.yandex.ru/search?text={query}"
         try:
             data = get_searchpage_cards(driver, url_search, limit)
             break
         except Exception as e:
-            print(f"Я упал на {query}")
-            print(f"Exception details: {e}")
-            print(f"Traceback: {traceback.format_exc()}")
-            driver.quit()
-            return None
+            if count != 10:
+                logger.error(f"Processing request error for {query}.")
+                logger.error(f"Exception details: {e}")
+                logger.error(f"Traceback: {traceback.format_exc()}")
+                logger.info("Closing Chrome session.")
+                driver.quit()
+                count = count + 1
+                return None
+            else:
+                data = False
+                logger.error("Couldn't catch data from Ya.Market after 10 tries.")
+                break
+    logger.info("Parse Ya.Market operation successfull. Sending data.")
     return data
 
