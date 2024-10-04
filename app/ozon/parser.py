@@ -54,7 +54,7 @@ def clean_url(url):#чистим говняные ссылки
     clean_url = urlunparse((parsed_url.scheme, parsed_url.netloc, parsed_url.path, '', '', ''))
     return clean_url
 
-def get_searchpage_cards(driver, url, all_cards=[]):
+def get_searchpage_cards(driver, url, limit, all_cards=[]):
     logger.info("Gathering product card info.")
     driver.get(url)
     scrolldown(driver, 50)
@@ -94,14 +94,14 @@ def get_searchpage_cards(driver, url, all_cards=[]):
             logger.error(f"Error message: {e}")
 
     content_with_next = [div for div in content.find_all("a", href=True) if "Дальше" in str(div)]
-    if not content_with_next:
+    if not content_with_next or (limit is not None and len(all_cards) + len(cards_in_page) >= limit):
         return cards_in_page
     else:
         next_page_url = "https://www.ozon.ru" + content_with_next[0]["href"]
         all_cards.extend(get_searchpage_cards(driver, next_page_url, cards_in_page))
         return all_cards
 
-def ozon_parser(query):
+def ozon_parser(query, limit):
     
     url = "https://ozon.ru/"
     end_list = list()
@@ -112,7 +112,7 @@ def ozon_parser(query):
     while True:
         url_search = f"https://www.ozon.ru/search/?text={query}&from_global=true"
         try:
-            search_cards = get_searchpage_cards(driver, url_search)
+            search_cards = get_searchpage_cards(driver, url_search, limit)
             cards_quantity = len(search_cards)
             logger.info(f"Successfully found {cards_quantity} by search request {query}")
             end_list.append({query: search_cards})
