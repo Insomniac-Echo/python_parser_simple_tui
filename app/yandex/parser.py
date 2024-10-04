@@ -130,7 +130,7 @@ def get_searchpage_cards(driver, url, max_cards):
             try:
                 get_product_info(link, all_data_json, sk_value)
             except Exception as e:
-                logger.error(f"Error processing link: {link}: {e}")
+                logger.error(f"Error processing link: {e}")
                 logger.error(f"Traceback: {traceback.format_exc()}")
 
         return all_data_json
