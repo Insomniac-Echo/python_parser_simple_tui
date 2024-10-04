@@ -41,12 +41,14 @@ def get_product_info(product_url):
         script_data = json.loads(json_data["seo"]["script"][0]["innerHTML"])#по ключу seo и script делаем основной поиск, делаем такую же проверку как в скрипте вб через .get, карточки, на которых нет рейтинга или чего-то другого все равно записываем, но на пустых местах ставим non
         description = script_data.get("description", None)
         image_url = script_data.get("image", None)
+        brand = script_data.get("brand", None)
+        id_src = script_data.get("sku", None)
         price = script_data["offers"].get("price", "N/A") + " " + script_data["offers"].get("priceCurrency", "N/A")
         rating = script_data.get("aggregateRating", {}).get("ratingValue", None)
         rating_counter = script_data.get("aggregateRating", {}).get("reviewCount", None)
         product_id = script_data.get("sku", None)
 
-        return (product_id, full_name, description, price, rating, rating_counter, image_url)
+        return (id_src, brand, product_id, full_name, description, price, rating, rating_counter, image_url)
 
 def clean_url(url):#чистим говняные ссылки
     parsed_url = urlparse(url)
@@ -75,15 +77,18 @@ def get_searchpage_cards(driver, url, all_cards=[]):
             clean_card_url = clean_url(card_url)
             product_url = "https://ozon.ru" + clean_card_url
 
-            product_id, full_name, description, price, rating, rating_counter, image_url = get_product_info(clean_card_url)# прилетает кортеж из 7 элементов и присваивается данным переменным
-            card_info = {product_id: {"short_name": card_name,
-                                      "full_name": full_name,
-                                      "description": description,
-                                      "url": product_url,
-                                      "rating": rating,
-                                      "rating_counter": rating_counter,
-                                      "price": price,
-                                      "image_url": image_url
+            id_src, brand, product_id, full_name, description, price, rating, rating_counter, image_url = get_product_info(clean_card_url)# прилетает кортеж из 7 элементов и присваивается данным переменным
+            card_info = {product_id: {"id_src": id_src,
+                                      "short_name": card_name,
+                                      "name": full_name,
+                                      "brand": brand,
+                                      "link": product_url,
+                                      "reviewRating": rating,
+                                      "feedbacks": rating_counter,
+                                      "product_price": price,
+                                      "link":clean_card_url,
+                                      "img_url": image_url,
+                                      "description": description
                                       }
                          }
             cards_in_page.append(card_info)
