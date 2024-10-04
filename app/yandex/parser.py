@@ -36,7 +36,7 @@ def scrolldown(driver, deep):
 def get_product_info(full_link, all_data_json, sk_value):
     product_id, business_id, sku_id = extract_ids_from_link(full_link)
     if not product_id or not business_id or not sku_id:
-        logger.error("Error extracting data from link: ", full_link)
+        logger.error(f"Error extracting data from link: {full_link}")
 
     session = requests.Session()
     url = 'https://market.yandex.ru/api/resolve/?r=src/resolvers/productPage/resolveProductCardRemote:resolveProductCardRemote'
@@ -88,10 +88,10 @@ def get_product_info(full_link, all_data_json, sk_value):
             all_data_json.append(parsed_response)
         except json.JSONDecodeError:
             logger.error("JSON decode error.")
-            logger.error("Response text: ", response.text)
+            logger.error(f"Response text: {response.text}")
     else:
-        logger.error("Status code error: ", response.status_code)
-        logger.error("Response text: ", response.text)
+        logger.error(f"Status code error: {response.status_code}")
+        logger.error(f"Response text: {response.text}")
 
 
 def extract_ids_from_link(link):
@@ -130,7 +130,7 @@ def get_searchpage_cards(driver, url, max_cards):
             try:
                 get_product_info(link, all_data_json, sk_value)
             except Exception as e:
-                logger.error(f"Error processing link {link}: {e}")
+                logger.error(f"Error processing link: {link}: {e}")
                 logger.error(f"Traceback: {traceback.format_exc()}")
 
         return all_data_json
