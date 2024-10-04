@@ -85,7 +85,8 @@ def get_product_info(full_link, all_data_json, sk_value):
     if response.status_code == 200:
         try:
             parsed_response = response.json()
-            all_data_json.append(parsed_response)
+            formatted_data = get_details_from_json(parsed_response, full_link)
+            all_data_json.append(formatted_data)
         except json.JSONDecodeError:
             logger.error("JSON decode error.")
             logger.error(f"Response text: {response.text}")
@@ -172,6 +173,54 @@ def capture_post_request(driver):
     
     driver.quit()
     return sk_value
+
+def get_details_from_json(response, full_link):
+    print('Форматируем данные!')
+    data_list = []
+    
+    for result in response.get('results', []):
+        buy_option = result.get('data', {}).get('collections', {}).get('buyOption', {})
+        description = result.get('data', {}).get('collections', {}).get('fullDescription', {})
+        image = result.get('data', {}).get('collections', {}).get('productCardMeta', {})
+
+        # Extract data from buyOption
+        for key, value in buy_option.items():
+            id = value.get('productId')
+            name = value.get('title')
+            price = value.get('price', {}).get('value')
+            supplier_name = value.get('supplierName')
+            delivery_text = value.get('deliveryText')
+            base_price = value.get('basePrice', {}).get('value')
+        
+        # Extract fullDescription text
+        description_text = None
+        for key, value in description.items():
+            description_text = value.get('text')
+
+        img_url = None
+        for key, value in image.items():
+            img_url = value.get('image')
+            feedbacks = value.get('ratingCount')
+            reviewRating = value.get('rating')
+            brand = value.get('vendorName')
+
+        data_list.append({
+            'id_src': id,
+            'name': name,
+            'brand': brand,
+            'product_price': price,
+            'supplier': supplier_name,
+            'feedbacks':feedbacks,
+            'reviewRating':reviewRating,
+            'delivery_text': delivery_text,
+            'basic_price': base_price,
+            'link': f"https://market.yandex.ru/{full_link}",
+            'img_url': img_url,
+            'description': description_text
+        })
+    
+    return data_list
+
 
 def yandex_parser(query, limit):
     logger.info("Starting Chrome Session")
