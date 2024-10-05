@@ -58,7 +58,7 @@ async def search_multiple_wb(queries: list[str]):
 @app.get("/search/ozon")
 def search_single_ozon(query: str, limit: int):
     try:
-        logger.info(f"New single request for Ozon: {query}.")
+        logger.info(f"New single request for Ozon: {query} with limit by {limit}.")
         data = ozon_parser(query, limit)
         return {"query": query, "limit": limit, "data": data}
     except Exception as e:

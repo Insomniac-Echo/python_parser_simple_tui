@@ -38,7 +38,7 @@ def get_product_info(product_url):
         product_id = str(full_name.split()[-1])[1:-1]
         return (product_id, full_name, "Товар для лиц старше 18 лет", None, None, None, None)
     else:
-        script_data = json.loads(json_data["seo"]["script"][0]["innerHTML"])#по ключу seo и script делаем основной поиск, делаем такую же проверку как в скрипте вб через .get, карточки, на которых нет рейтинга или чего-то другого все равно записываем, но на пустых местах ставим non
+        script_data = json.loads(json_data["seo"]["script"][0]["innerHTML"])
         description = script_data.get("description", None)
         image_url = script_data.get("image", None)
         brand = script_data.get("brand", None)
@@ -71,11 +71,11 @@ def get_searchpage_cards(driver, url, limit, all_cards=[]):
     for card in content_with_cards:
         try:
             card_url = card.find("a", href=True)["href"]
-            card_name = card.find("span", {"class": "tsBody500Medium"}).contents[0]#этот класс всегда статичный поэтому по нему ищем
+            card_name = card.find("span", {"class": "tsBody500Medium"}).contents[0]
 
             clean_card_url = clean_url(card_url)
             product_url = "https://ozon.ru" + clean_card_url
-            brand, product_id, full_name, description, price, rating, rating_counter, image_url = get_product_info(clean_card_url)# прилетает кортеж из 7 элементов и присваивается данным переменным
+            brand, product_id, full_name, description, price, rating, rating_counter, image_url = get_product_info(clean_card_url)
             card_info = {product_id: {"id_src": product_id,
                                       "short_name": card_name,
                                       "name": full_name,
@@ -95,14 +95,14 @@ def get_searchpage_cards(driver, url, limit, all_cards=[]):
 
     content_with_next = [div for div in content.find_all("a", href=True) if "Дальше" in str(div)]
     if not content_with_next or (limit is not None and len(all_cards) + len(cards_in_page) >= limit):
-        return cards_in_page
+        all_cards.extend(cards_in_page)
+        return all_cards[:limit]
     else:
         next_page_url = "https://www.ozon.ru" + content_with_next[0]["href"]
-        all_cards.extend(get_searchpage_cards(driver, next_page_url, cards_in_page))
-        return all_cards
+        all_cards.extend(cards_in_page)
+        return get_searchpage_cards(driver, next_page_url, limit, all_cards)
 
 def ozon_parser(query, limit):
-    
     url = "https://ozon.ru/"
     end_list = list()
     
