@@ -1,5 +1,7 @@
-import undetected_chromedriver as uc
-from undetected_chromedriver import By
+from seleniumwire2 import webdriver
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support import expected_conditions as EC
+from selenium.webdriver.support.ui import WebDriverWait
 from curl_cffi import requests
 import time
 import json
@@ -7,31 +9,19 @@ from urllib.parse import urlparse, parse_qs
 from bs4 import BeautifulSoup
 import pickle
 import traceback
-
 from app.utils.app_logger import get_logger
 
 logger = get_logger(__name__)
 
-
-def chrome_start():
-    logger.info("Chrome init.")
-    options = uc.ChromeOptions()
-    options.add_argument("--disable-blink-features=AutomationControlled")
-    options.add_argument("--log-level=3")
-    options.add_argument("--start-maximized")
-    options.add_argument("--no-sandbox")
-    options.add_argument("user-agent=Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/129.0.0.0 Safari/537.36")
-    options.add_argument("--disable-blink-features=AutomationControlled")
-    options.add_argument("--disable-blink-features")
-    options.set_capability('goog:loggingPrefs', {'performance': 'ALL'})
-    options.add_argument('--disable-dev-shm-usage')        
-    driver = uc.Chrome(options=options, version_main=129)
+def firefox_start():
+    logger.info("Firefox init.")       
+    driver = webdriver.Firefox()
     return driver
 
-def scrolldown(driver, deep):
-    for _ in range(deep):
-        driver.execute_script('window.scrollBy(0, 500)')
-        time.sleep(0.5)
+def scrolldown(driver, num_scrolls):
+    for _ in range(num_scrolls):
+        driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
+        time.sleep(2)
 
 def get_product_info(full_link, sk_value):
     product_id, business_id, sku_id = extract_ids_from_link(full_link)
@@ -95,27 +85,29 @@ def get_product_info(full_link, sk_value):
         logger.error(f"Response text: {response.text}")
         return None
 
-
 def extract_ids_from_link(link):
-    parsed_url = urlparse(link) #вот эта залупа разбивает полную ссылку из хтмл в составные части scheme(https), netloc, path(/product--smartfon-honor-x6a/1917722102), params, query, fragment
-    query_params = parse_qs(parsed_url.query) #{'sku': ['103005246739'], 'shopId': ['431782'], 'from-show-uid': ['17272157555770050903206008'], 'do-waremd5': ['fspzrCShq3lYmGCLg30VBw'], 'sponsored': ['1'], 'cpc': ['QyZWKVkBLrYxmCu-ZWdYAajSb1CX7CEC4HVKgAZpUWc_57l2uq23friZj0uEZd-BG_fYYwzqBQUX1hpZ2ebvMMWDhRIQyTvxq4LPwQ2_X2sCB5hOI7H7LZtrsFUK3KgCiIBscFJsnU3MZc8h3Olqp4lft8SPlgTlpZggLYD3tzMS1L8Y1jBD5rIyn7YiObsXKiDjARMz41exrXfkuBx7vpffs-vrcnfg2lLPg2lVd3lpiV6bYQ7P9ftHzs3aDNI9Ls8xkX-MnjG40RKV7T4HJq_f0dKfUE0BZAEc-YjrpjzYVU8wWZTOOJLMGqS48Ml7TtkDKISAnrpy5O0A9cAHCXorAFIQVUXi'], 'cc': ['CjIxNzI3MjE1NzU1MjU5Lzc0MmE4NjM1ZGJhMmRjNGY4OWVmOGFjMWU0MjIwNjAwLzEvMRCAAoB95u0G'], 'uniqueId': ['924574'], 'cpm-adv': ['1']}
-    product_id = parsed_url.path.split('/')[-1] #берет path из ссылки и делает список с элементами, котрые разделены '/', последний элемент из него
-    business_id = query_params.get('uniqueId', [None])[0] #классический гениальный get по названию из ссылки, берем первый из списка
+    parsed_url = urlparse(link)#вот эта залупа разбивает полную ссылку из хтмл в составные части scheme(https), netloc, path(/product--smartfon-honor-x6a/1917722102), params, query, fragment
+    query_params = parse_qs(parsed_url.query)#{'sku': ['103005246739'], 'shopId': ['431782'], 'from-show-uid': ['17272157555770050903206008'], 'do-waremd5': ['fspzrCShq3lYmGCLg30VBw'], 'sponsored': ['1'], 'cpc': ['QyZWKVkBLrYxmCu-ZWdYAajSb1CX7CEC4HVKgAZpUWc_57l2uq23friZj0uEZd-BG_fYYwzqBQUX1hpZ2ebvMMWDhRIQyTvxq4LPwQ2_X2sCB5hOI7H7LZtrsFUK3KgCiIBscFJsnU3MZc8h3Olqp4lft8SPlgTlpZggLYD3tzMS1L8Y1jBD5rIyn7YiObsXKiDjARMz41exrXfkuBx7vpffs-vrcnfg2lLPg2lVd3lpiV6bYQ7P9ftHzs3aDNI9Ls8xkX-MnjG40RKV7T4HJq_f0dKfUE0BZAEc-YjrpjzYVU8wWZTOOJLMGqS48Ml7TtkDKISAnrpy5O0A9cAHCXorAFIQVUXi'], 'cc': ['CjIxNzI3MjE1NzU1MjU5Lzc0MmE4NjM1ZGJhMmRjNGY4OWVmOGFjMWU0MjIwNjAwLzEvMRCAAoB95u0G'], 'uniqueId': ['924574'], 'cpm-adv': ['1']}
+    product_id = parsed_url.path.split('/')[-1]#берет path из ссылки и делает список с элементами, котрые разделены '/', последний элемент из него
+    business_id = query_params.get('uniqueId', [None])[0]#классический гениальный get по названию из ссылки, берем первый из списка
     sku_id = query_params.get('sku', [None])[0]
     return product_id, business_id, sku_id
 
-
 def get_searchpage_cards(driver, url, max_cards):
     driver.get(url)
-    scrolldown(driver, 10)
+    driver.save_screenshot('screenshot.png')
+    scrolldown(driver, 5)
+    time.sleep(1)
     search_page_html = BeautifulSoup(driver.page_source, "html.parser")
     content = search_page_html.find_all(attrs={"data-auto": "snippet-link"})
     logger.info(f"Found {len(content)} product cards on page.")
+    with open('search_page_html.html', 'w', encoding='utf-8') as file:
+        file.write(str(search_page_html))
 
     if len(content) >= 3:
-        links = set() # set фильтрует повторяющиеся линки(охуеть!)
-        for div in search_page_html.find_all('div'): #ищем все дивы
-                a_tag = div.find('a', href=True) # ищем а тэг с href
+        links = set()
+        for div in search_page_html.find_all('div'):
+                a_tag = div.find('a', href=True)
                 if a_tag and 'href' in a_tag.attrs:
                     href = a_tag['href']
                     if href.startswith('/product'):
@@ -146,15 +138,12 @@ def get_searchpage_cards(driver, url, max_cards):
         return all_data_json
 
 def get_cookie(driver):
-    url = 'https://market.yandex.ru/product--sportivnyi-kostium-muzhskoi-komplekt-troika/605959389?sku=103504567575&uniqueId=161568033&do-waremd5=pPjD0wHYXNmdZFtpXs1PZA&sponsored=1'
-    driver.get(url)  
-    #кликаем на кнопку размера, чтобы отправить пост запрос и засетить валидные куки(другого способа я не придумал)
-    button_xpath = '//*[@id="NTY"]/label'
-    button = driver.find_element(By.XPATH, button_xpath)
-    button.click()
+    wish_list_button = WebDriverWait(driver, 10).until(
+        EC.element_to_be_clickable((By.CSS_SELECTOR, 'button._63Rdu._3PoE9'))
+    )
+    wish_list_button.click()
     time.sleep(2)
     cookies = driver.get_cookies()
-    #сейвим эти куки используя пикл(в документации curl_cffi говорят этим пользоваться)
     with open('cookies.pkl', 'wb') as file:
         pickle.dump(cookies, file)
     sk_value = capture_post_request(driver)
@@ -162,23 +151,14 @@ def get_cookie(driver):
     return sk_value
 
 def capture_post_request(driver):
-    # ловим логи сети
-    logs = driver.get_log('performance')
     sk_value = None
-    
-    for log in logs:
-        message = json.loads(log['message'])
-        if 'Network.requestWillBeSent' in message['message']['method']:
-            params = message['message']['params']
-            if 'request' in params:
-                request = params['request']
-                if request['method'] == 'POST' and request['url'] == 'https://market.yandex.ru/api/resolve/?r=src/resolvers/productPage/resolveProductCardRemote:resolveProductCardRemote':
-                    headers = request['headers']
-                    sk_value = headers.get('sk')
-                    if sk_value:
-                        logger.info(f"Extracting sk: {sk_value}")
-                        break
-    
+    for request in driver.requests:
+        if request.method == 'POST' and request.url == 'https://market.yandex.ru/api/resolve/?r=src/resolvers/wishlist/addWishlistItemByReference:addWishlistItemByReference':
+            headers = request.headers
+            sk_value = headers.get('sk')
+            if sk_value:
+                logger.info(f"Extracting sk: {sk_value}")
+                break
     driver.quit()
     return sk_value
 
@@ -226,10 +206,9 @@ def get_details_from_json(response, full_link):
     
     return data_list
 
-
 def yandex_parser(query, limit):
-    logger.info("Starting Chrome Session")
-    driver = chrome_start()
+    logger.info("Starting Firefox Session")
+    driver = firefox_start()
     logger.info("Starting gathering product information.")
     while True:
         count = 0
@@ -242,7 +221,7 @@ def yandex_parser(query, limit):
                 logger.error(f"Processing request error for {query}.")
                 logger.error(f"Exception details: {e}")
                 logger.error(f"Traceback: {traceback.format_exc()}")
-                logger.info("Closing Chrome session.")
+                logger.info("Closing Firefox session.")
                 driver.quit()
                 count = count + 1
                 return None
