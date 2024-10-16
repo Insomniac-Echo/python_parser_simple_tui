@@ -1,7 +1,11 @@
-from seleniumwire2 import webdriver
+from seleniumwire2 import webdriver  # Import from seleniumwire
+from selenium.webdriver.firefox.options import Options
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.common.desired_capabilities import DesiredCapabilities
+from selenium.common.exceptions import TimeoutException
+
 from curl_cffi import requests
 import time
 import json
@@ -18,10 +22,10 @@ def firefox_start():
     driver = webdriver.Firefox()
     return driver
 
-def scrolldown(driver, num_scrolls):
-    for _ in range(num_scrolls):
-        driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
-        time.sleep(2)
+def scrolldown(driver, deep):
+    for _ in range(deep):
+        driver.execute_script('window.scrollBy(0, 500)')
+        time.sleep(0.5)
 
 def get_product_info(full_link, sk_value):
     product_id, business_id, sku_id = extract_ids_from_link(full_link)
@@ -86,17 +90,17 @@ def get_product_info(full_link, sk_value):
         return None
 
 def extract_ids_from_link(link):
-    parsed_url = urlparse(link)#вот эта залупа разбивает полную ссылку из хтмл в составные части scheme(https), netloc, path(/product--smartfon-honor-x6a/1917722102), params, query, fragment
-    query_params = parse_qs(parsed_url.query)#{'sku': ['103005246739'], 'shopId': ['431782'], 'from-show-uid': ['17272157555770050903206008'], 'do-waremd5': ['fspzrCShq3lYmGCLg30VBw'], 'sponsored': ['1'], 'cpc': ['QyZWKVkBLrYxmCu-ZWdYAajSb1CX7CEC4HVKgAZpUWc_57l2uq23friZj0uEZd-BG_fYYwzqBQUX1hpZ2ebvMMWDhRIQyTvxq4LPwQ2_X2sCB5hOI7H7LZtrsFUK3KgCiIBscFJsnU3MZc8h3Olqp4lft8SPlgTlpZggLYD3tzMS1L8Y1jBD5rIyn7YiObsXKiDjARMz41exrXfkuBx7vpffs-vrcnfg2lLPg2lVd3lpiV6bYQ7P9ftHzs3aDNI9Ls8xkX-MnjG40RKV7T4HJq_f0dKfUE0BZAEc-YjrpjzYVU8wWZTOOJLMGqS48Ml7TtkDKISAnrpy5O0A9cAHCXorAFIQVUXi'], 'cc': ['CjIxNzI3MjE1NzU1MjU5Lzc0MmE4NjM1ZGJhMmRjNGY4OWVmOGFjMWU0MjIwNjAwLzEvMRCAAoB95u0G'], 'uniqueId': ['924574'], 'cpm-adv': ['1']}
-    product_id = parsed_url.path.split('/')[-1]#берет path из ссылки и делает список с элементами, котрые разделены '/', последний элемент из него
-    business_id = query_params.get('uniqueId', [None])[0]#классический гениальный get по названию из ссылки, берем первый из списка
+    parsed_url = urlparse(link)
+    query_params = parse_qs(parsed_url.query)
+    product_id = parsed_url.path.split('/')[-1]
+    business_id = query_params.get('uniqueId', [None])[0]
     sku_id = query_params.get('sku', [None])[0]
     return product_id, business_id, sku_id
 
 def get_searchpage_cards(driver, url, max_cards):
     driver.get(url)
     driver.save_screenshot('screenshot.png')
-    scrolldown(driver, 5)
+    scrolldown(driver, 30)
     time.sleep(1)
     search_page_html = BeautifulSoup(driver.page_source, "html.parser")
     content = search_page_html.find_all(attrs={"data-auto": "snippet-link"})
@@ -139,7 +143,7 @@ def get_searchpage_cards(driver, url, max_cards):
 
 def get_cookie(driver):
     wish_list_button = WebDriverWait(driver, 10).until(
-        EC.element_to_be_clickable((By.CSS_SELECTOR, 'button._63Rdu._3PoE9'))
+        EC.element_to_be_clickable((By.CSS_SELECTOR, 'button._63Rdu._3PoE9[title="Добавить в избранное"]'))
     )
     wish_list_button.click()
     time.sleep(2)
@@ -169,7 +173,14 @@ def get_details_from_json(response, full_link):
         buy_option = result.get('data', {}).get('collections', {}).get('buyOption', {})
         description = result.get('data', {}).get('collections', {}).get('fullDescription', {})
         image = result.get('data', {}).get('collections', {}).get('productCardMeta', {})
+        breadcrumbs = result.get('data', {}).get('collections', {}).get('breadcrumbs', {})
 
+        id = None
+        name = None
+        price = None
+        supplier_name = None
+        delivery_text = None
+        base_price = None
         for key, value in buy_option.items():
             id = value.get('productId')
             name = value.get('title')
@@ -183,11 +194,31 @@ def get_details_from_json(response, full_link):
             description_text = value.get('text')
 
         img_url = None
+        feedbacks = None
+        reviewRating = None
+        brand = None
         for key, value in image.items():
             img_url = value.get('image')
             feedbacks = value.get('ratingCount')
             reviewRating = value.get('rating')
             brand = value.get('vendorName')
+
+        breadcrumb_texts = []
+        breadcrumb_params = []
+        for key, value in breadcrumbs.items():
+            for item in value.get('breadcrumbItems', []):
+                breadcrumb_texts.append(item.get('text'))
+                breadcrumb_params.append(item.get('transition', {}).get('params', {}))
+
+        breadcrumbs_formatted = []
+        if breadcrumb_texts and breadcrumb_params:
+            breadcrumb_data = {}
+            for i, (text, param) in enumerate(zip(breadcrumb_texts, breadcrumb_params)):
+                key = f'name_{i+1}'
+                key_eng = f'name_{i+1}_eng'
+                breadcrumb_data[key] = text
+                breadcrumb_data[key_eng] = param.get('categorySlug')
+            breadcrumbs_formatted.append(breadcrumb_data)
 
         data_list.append({
             'id_src': id,
@@ -201,7 +232,8 @@ def get_details_from_json(response, full_link):
             'basic_price': base_price,
             'link': f"https://market.yandex.ru/{full_link}",
             'img_url': img_url,
-            'description': description_text
+            'description': description_text,
+            'category': breadcrumbs_formatted
         })
     
     return data_list

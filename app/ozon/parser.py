@@ -23,10 +23,10 @@ def chrome_start(url):
     driver = uc.Chrome(options = options, version_main=129)
     return driver
 
-def scrolldown(driver, deep):
-    for _ in range(deep):
-        driver.execute_script('window.scrollBy(0, 500)')
-        time.sleep(0.17)
+def scrolldown(driver, num_scrolls):
+    for _ in range(num_scrolls):
+        driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
+        time.sleep(0.2)
 
 def get_product_info(product_url):
     session = requests.Session()
@@ -46,15 +46,30 @@ def get_product_info(product_url):
         rating = script_data.get("aggregateRating", {}).get("ratingValue", None)
         rating_counter = script_data.get("aggregateRating", {}).get("reviewCount", None)
         product_id = script_data.get("sku", None)
+        layout_tracking_info_str = json_data.get("layoutTrackingInfo", {})
+        layout_tracking_info = json.loads(layout_tracking_info_str)
+        hierarchy = layout_tracking_info.get("hierarchy", None)
+        bread_crumbs_value = json_data["widgetStates"].get("breadCrumbs-3385917-default-1", None)
 
-        return (brand, product_id, full_name, description, price, rating, rating_counter, image_url)
+        bread_crumbs_data = {}
+        if bread_crumbs_value:
+            bread_crumbs_value = json.loads(bread_crumbs_value)
+            for i, category in enumerate(bread_crumbs_value.get("breadcrumbs", [])):
+                bread_crumbs_data[f"name_{i+1}"] = category.get("text")
+                bread_crumbs_data[f"name_{i+1}_eng"] = category.get("link").replace("/category/", "")
+
+
+        return (brand, product_id, full_name, description, price, rating, rating_counter, image_url, bread_crumbs_data, hierarchy)
 
 def clean_url(url):#чистим говняные ссылки
     parsed_url = urlparse(url)
     clean_url = urlunparse((parsed_url.scheme, parsed_url.netloc, parsed_url.path, '', '', ''))
     return clean_url
 
-def get_searchpage_cards(driver, url, limit, all_cards=[]):
+def get_searchpage_cards(driver, url, limit, all_cards=None):
+    if all_cards is None:
+        all_cards = []
+    
     logger.info("Gathering product card info.")
     driver.get(url)
     scrolldown(driver, 50)
@@ -75,7 +90,7 @@ def get_searchpage_cards(driver, url, limit, all_cards=[]):
 
             clean_card_url = clean_url(card_url)
             product_url = "https://ozon.ru" + clean_card_url
-            brand, product_id, full_name, description, price, rating, rating_counter, image_url = get_product_info(clean_card_url)
+            brand, product_id, full_name, description, price, rating, rating_counter, image_url, bread_crumbs_value, hierarchy = get_product_info(clean_card_url)
             card_info = {product_id: {"id_src": product_id,
                                       "short_name": card_name,
                                       "name": full_name,
@@ -85,7 +100,9 @@ def get_searchpage_cards(driver, url, limit, all_cards=[]):
                                       "product_price": price,
                                       "link":product_url,
                                       "img_url": image_url,
-                                      "description": description
+                                      "description": description,
+                                      "category": bread_crumbs_value,
+                                      "full_category": hierarchy 
                                       }
                          }
             cards_in_page.append(card_info)
