@@ -1,4 +1,4 @@
-from seleniumwire2 import webdriver  # Import from seleniumwire
+from seleniumwire2 import webdriver
 from selenium.webdriver.firefox.options import Options
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
@@ -119,7 +119,6 @@ def get_searchpage_cards(driver, url, max_cards):
                         if len(links) >= max_cards:
                             break
 
-        all_data_json = []
         responses = []
 
         sk_value = get_cookie(driver)
@@ -134,12 +133,13 @@ def get_searchpage_cards(driver, url, max_cards):
                 logger.error(f"Error processing link: {e}")
                 logger.error(f"Traceback: {traceback.format_exc()}")
 
+        formatted_data_all = []
         for response, link in responses:
             formatted_data = get_details_from_json(response, link)
-            all_data_json.append(formatted_data)
+            formatted_data_all.extend(formatted_data)
         logger.info('Данные отформатированы!')
 
-        return all_data_json
+        return formatted_data_all
 
 def get_cookie(driver):
     wish_list_button = WebDriverWait(driver, 10).until(
@@ -210,15 +210,13 @@ def get_details_from_json(response, full_link):
                 breadcrumb_texts.append(item.get('text'))
                 breadcrumb_params.append(item.get('transition', {}).get('params', {}))
 
-        breadcrumbs_formatted = []
+        breadcrumbs_formatted = {}
         if breadcrumb_texts and breadcrumb_params:
-            breadcrumb_data = {}
             for i, (text, param) in enumerate(zip(breadcrumb_texts, breadcrumb_params)):
                 key = f'name_{i+1}'
                 key_eng = f'name_{i+1}_eng'
-                breadcrumb_data[key] = text
-                breadcrumb_data[key_eng] = param.get('categorySlug')
-            breadcrumbs_formatted.append(breadcrumb_data)
+                breadcrumbs_formatted[key] = text
+                breadcrumbs_formatted[key_eng] = param.get('categorySlug')
 
         data_list.append({
             'id_src': id,

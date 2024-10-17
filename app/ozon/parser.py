@@ -2,6 +2,7 @@ import undetected_chromedriver as uc
 from curl_cffi import requests
 import time
 import json
+import re
 from urllib.parse import urlparse, urlunparse
 from bs4 import BeautifulSoup
 from app.ozon.entities import InvalidCardProccesing
@@ -49,17 +50,18 @@ def get_product_info(product_url):
         layout_tracking_info_str = json_data.get("layoutTrackingInfo", {})
         layout_tracking_info = json.loads(layout_tracking_info_str)
         hierarchy = layout_tracking_info.get("hierarchy", None)
-        bread_crumbs_value = json_data["widgetStates"].get("breadCrumbs-3385917-default-1", None)
+        breadcrumbs_value = json_data["widgetStates"].get("breadCrumbs-3385917-default-1", None)
 
-        bread_crumbs_data = {}
-        if bread_crumbs_value:
-            bread_crumbs_value = json.loads(bread_crumbs_value)
-            for i, category in enumerate(bread_crumbs_value.get("breadcrumbs", [])):
-                bread_crumbs_data[f"name_{i+1}"] = category.get("text")
-                bread_crumbs_data[f"name_{i+1}_eng"] = category.get("link").replace("/category/", "")
+        breadcrumbs_data = {}
+        if breadcrumbs_value:
+            breadcrumbs_value = json.loads(breadcrumbs_value)
+            breadcrumbs = breadcrumbs_value.get("breadcrumbs", [])
+            for i, category in enumerate(breadcrumbs[:-1]):
+                breadcrumbs_data[f"name_{i+1}"] = category.get("text")
+                breadcrumbs_data[f"name_{i+1}_eng"] = re.sub(r'-\d+/?$', '', category.get("link").replace("/category/", ""))
 
 
-        return (brand, product_id, full_name, description, price, rating, rating_counter, image_url, bread_crumbs_data, hierarchy)
+        return (brand, product_id, full_name, description, price, rating, rating_counter, image_url, breadcrumbs_data, hierarchy)
 
 def clean_url(url):#чистим говняные ссылки
     parsed_url = urlparse(url)
@@ -90,21 +92,21 @@ def get_searchpage_cards(driver, url, limit, all_cards=None):
 
             clean_card_url = clean_url(card_url)
             product_url = "https://ozon.ru" + clean_card_url
-            brand, product_id, full_name, description, price, rating, rating_counter, image_url, bread_crumbs_value, hierarchy = get_product_info(clean_card_url)
-            card_info = {product_id: {"id_src": product_id,
-                                      "short_name": card_name,
-                                      "name": full_name,
-                                      "brand": brand,
-                                      "reviewRating": rating,
-                                      "feedbacks": rating_counter,
-                                      "product_price": price,
-                                      "link":product_url,
-                                      "img_url": image_url,
-                                      "description": description,
-                                      "category": bread_crumbs_value,
-                                      "full_category": hierarchy 
-                                      }
-                         }
+            brand, product_id, full_name, description, price, rating, rating_counter, image_url, breadcrumbs_value, hierarchy = get_product_info(clean_card_url)
+            card_info = {
+                "id_src": product_id,
+                "short_name": card_name,
+                "name": full_name,
+                "brand": brand,
+                "reviewRating": rating,
+                "feedbacks": rating_counter,
+                "product_price": price,
+                "link": product_url,
+                "img_url": image_url,
+                "description": description,
+                "full_category": hierarchy,
+                "category": breadcrumbs_value
+            }
             cards_in_page.append(card_info)
         except Exception as e:
             logger.warning(f"Error processing card: {card}")
@@ -121,7 +123,6 @@ def get_searchpage_cards(driver, url, limit, all_cards=None):
 
 def ozon_parser(query, limit):
     url = "https://ozon.ru/"
-    end_list = list()
     
     logger.info("Starting Chrome session.")
     driver = chrome_start(url)
@@ -132,11 +133,10 @@ def ozon_parser(query, limit):
             search_cards = get_searchpage_cards(driver, url_search, limit)
             cards_quantity = len(search_cards)
             logger.info(f"Successfully found {cards_quantity} by search request {query}")
-            end_list.append({query: search_cards})
             break
         except InvalidCardProccesing:
             logger.error("Product card processing error.")
     driver.quit()
     
     logger.info("Parse Ozon operation successfull. Sending data.")
-    return end_list
+    return search_cards
