@@ -43,7 +43,7 @@ def get_product_info(product_url):
         description = script_data.get("description", None)
         image_url = script_data.get("image", None)
         brand = script_data.get("brand", None)
-        price = script_data["offers"].get("price", "N/A") + " " + script_data["offers"].get("priceCurrency", "N/A")
+        price = script_data["offers"].get("price", "N/A")
         rating = script_data.get("aggregateRating", {}).get("ratingValue", None)
         rating_counter = script_data.get("aggregateRating", {}).get("reviewCount", None)
         product_id = script_data.get("sku", None)
@@ -94,13 +94,13 @@ def get_searchpage_cards(driver, url, limit, all_cards=None):
             product_url = "https://ozon.ru" + clean_card_url
             brand, product_id, full_name, description, price, rating, rating_counter, image_url, breadcrumbs_value, hierarchy = get_product_info(clean_card_url)
             card_info = {
-                "id_src": product_id,
+                "id_src": int(product_id),
                 "short_name": card_name,
                 "name": full_name,
                 "brand": brand,
-                "reviewRating": rating,
-                "feedbacks": rating_counter,
-                "product_price": price,
+                "reviewRating": float(rating),
+                "feedbacks": int(rating_counter),
+                "product_price": int(price),
                 "link": product_url,
                 "img_url": image_url,
                 "description": description,

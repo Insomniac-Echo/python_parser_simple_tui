@@ -5,7 +5,6 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.common.desired_capabilities import DesiredCapabilities
 from selenium.common.exceptions import TimeoutException
-
 from curl_cffi import requests
 import time
 import json
@@ -142,17 +141,28 @@ def get_searchpage_cards(driver, url, max_cards):
         return formatted_data_all
 
 def get_cookie(driver):
-    wish_list_button = WebDriverWait(driver, 10).until(
-        EC.element_to_be_clickable((By.CSS_SELECTOR, 'button._63Rdu._3PoE9[title="Добавить в избранное"]'))
-    )
-    wish_list_button.click()
-    time.sleep(2)
-    cookies = driver.get_cookies()
-    with open('cookies.pkl', 'wb') as file:
-        pickle.dump(cookies, file)
-    sk_value = capture_post_request(driver)
-    
-    return sk_value
+    max_retries = 3
+    retry_count = 0
+
+    while retry_count < max_retries:
+        try:
+            wish_list_button = WebDriverWait(driver, 10).until(
+                EC.element_to_be_clickable((By.CSS_SELECTOR, 'button._63Rdu._3PoE9[title="Добавить в избранное"]'))
+            )
+            wish_list_button.click()
+            time.sleep(2)
+            cookies = driver.get_cookies()
+            with open('cookies.pkl', 'wb') as file:
+                pickle.dump(cookies, file)
+            sk_value = capture_post_request(driver)
+            return sk_value
+        except TimeoutException:
+            logger.warning(f"Button not found on attempt {retry_count + 1}. Refreshing page.")
+            driver.refresh()
+            retry_count += 1
+
+    logger.error(f"Button not found after {max_retries} attempts. Exiting.")
+    return None
 
 def capture_post_request(driver):
     sk_value = None
@@ -212,22 +222,22 @@ def get_details_from_json(response, full_link):
 
         breadcrumbs_formatted = {}
         if breadcrumb_texts and breadcrumb_params:
-            for i, (text, param) in enumerate(zip(breadcrumb_texts, breadcrumb_params)):
+            for i, (text, param) in enumerate(zip(breadcrumb_texts[:-1], breadcrumb_params[:-1])):
                 key = f'name_{i+1}'
                 key_eng = f'name_{i+1}_eng'
                 breadcrumbs_formatted[key] = text
                 breadcrumbs_formatted[key_eng] = param.get('categorySlug')
 
         data_list.append({
-            'id_src': id,
+            'id_src': int(id),
             'name': name,
             'brand': brand,
-            'product_price': price,
+            'product_price': int(price),
+            'basic_price': int(base_price),
             'supplier': supplier_name,
-            'feedbacks':feedbacks,
-            'reviewRating':reviewRating,
+            'feedbacks': int(feedbacks),
+            'reviewRating': float(f"{reviewRating:.5f}"),
             'delivery_text': delivery_text,
-            'basic_price': base_price,
             'link': f"https://market.yandex.ru/{full_link}",
             'img_url': img_url,
             'description': description_text,

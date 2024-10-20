@@ -1,8 +1,6 @@
 import json
 import asyncio
 import aiohttp
-
-
 from app.wildberries.entities import DataValidationError, InvalidContentJSON
 from app.utils.app_logger import get_logger
 
@@ -27,6 +25,32 @@ async def get_description(session, id, basket_number):
             return desc["description"]
         else:
             logger.warning("Description not found.")
+            return None
+        
+async def get_category(session, id, brandid, subjectid, kindid):
+    url = f"https://www.wildberries.ru/webapi/product/{id}/data?subject={subjectid}&kind={kindid}&brand={brandid}"
+
+    async with session.get(url) as response:
+        if response.status != 200:
+            logger.warning("Status code other than 200. Local or Server error?")
+            return None
+        
+        category = await response.json()
+
+        if "value" in category:
+            site_path = category["value"].get("data", {}).get("sitePath", [])
+            parsed_data = {}
+            for i, item in enumerate(site_path[:-1], start=1):
+                key = f"name_{i}"
+                key_eng = f"name_{i}_eng"
+                name = item.get("name")
+                page_url = item.get("pageUrl")
+                if name and page_url:
+                    parsed_data[key] = name
+                    parsed_data[key_eng] = page_url.split('/')[-1]
+            return parsed_data
+        else:
+            logger.warning("category not found.")
             return None
 
 async def get_data(query):
@@ -137,8 +161,14 @@ def get_basket_number(id):
         return "14"
     elif 2190 <= vol <= 2405:
         return "15"         
-    else:
+    elif 2406 <= vol <= 2621: 
         return "16"
+    elif 2622 <= vol <= 2837:
+        return "17" 
+    elif 2838 <= vol <= 3053:
+        return "18"
+    else:
+        return "19" 
 
 async def get_details_from_json(session, response):
     logger.info("Formatting data.")
@@ -149,13 +179,15 @@ async def get_details_from_json(session, response):
         cashback = data.get('feedbackPoints')
         sale = data.get('sale')
         brand = data.get('brand')
+        brandid = data.get('brandId')
+        subjectid = data.get('subjectId')
+        kindid = data.get('kindId')
         rating = data.get('rating')
         supplier = data.get('supplier')
         supplierRating = data.get('supplierRating')
         feedbacks = data.get('feedbacks')
         reviewRating = data.get('reviewRating')
         promoTextCard = data.get('promoTextCard')
-        promoTextCat = data.get('promoTextCat')
         price_details = data.get('sizes', [{}])[0].get('price', {})
         basic_price = (price_details.get('basic') / 100)
         product_price = (price_details.get('product') / 100)
@@ -164,6 +196,7 @@ async def get_details_from_json(session, response):
         return_price = price_details.get('return')
         basket_number = get_basket_number(id)
         description = await get_description(session, id, basket_number)
+        category = await get_category(session, id, brandid, subjectid, kindid)
 
         if basket_number in ["01"]:
             img_url = f"https://basket-{basket_number}.wbbasket.ru/vol{str(id)[:2]}/part{str(id)[:4]}/{str(id)}/images/big/1.webp"
@@ -173,26 +206,26 @@ async def get_details_from_json(session, response):
             img_url = f"https://basket-{basket_number}.wbbasket.ru/vol{str(id)[:4]}/part{str(id)[:6]}/{str(id)}/images/big/1.webp"
 
         data_list.append({
-            'id_src': id,
+            'id_src': int(id),
             'name': name,
             'cashback': cashback,
             'sale': sale,
             'brand': brand,
-            'rating': rating,
+            'rating': int(rating),
             'supplier': supplier,
-            'supplierRating': supplierRating,
-            'feedbacks': feedbacks,
-            'reviewRating': reviewRating,
+            'supplierRating': int(supplierRating),
+            'feedbacks': int(feedbacks),
+            'reviewRating': float(f"{reviewRating:.5f}"),
             'promoTextCard': promoTextCard,
-            'promoTextCat': promoTextCat,
-            'basic_price': basic_price,
-            'product_price': product_price,
-            'total_price': total_price,
+            'basic_price': int(basic_price),
+            'product_price': int(product_price),
+            'total_price': int(total_price),
             'logistics_price': logistics_price,
             'return_price': return_price,
             'link': f'https://www.wildberries.ru/catalog/{data.get("id")}/detail.aspx?targetUrl=BP',
             'img_url': img_url,
-            'description': description
+            'description': description,
+            'category': category
         })
     logger.info("Parse Wildberries operation successfull. Sending data.")
     return data_list
