@@ -98,7 +98,6 @@ def extract_ids_from_link(link):
 
 def get_searchpage_cards(driver, url, max_cards):
     driver.get(url)
-    driver.save_screenshot('screenshot.png')
     scrolldown(driver, 30)
     time.sleep(1)
     search_page_html = BeautifulSoup(driver.page_source, "html.parser")

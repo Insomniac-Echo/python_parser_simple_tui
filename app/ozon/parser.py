@@ -60,6 +60,9 @@ def get_product_info(product_url):
                 breadcrumbs_data[f"name_{i+1}"] = category.get("text")
                 breadcrumbs_data[f"name_{i+1}_eng"] = re.sub(r'-\d+/?$', '', category.get("link").replace("/category/", ""))
 
+        if rating is None or rating_counter is None:
+            rating = 0.0
+            rating_counter = 0
 
         return (brand, product_id, full_name, description, price, rating, rating_counter, image_url, breadcrumbs_data, hierarchy)
 
