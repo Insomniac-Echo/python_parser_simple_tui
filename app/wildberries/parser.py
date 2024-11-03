@@ -1,8 +1,9 @@
 import json
 import asyncio
-import aiohttp
 from app.wildberries.entities import DataValidationError, InvalidContentJSON
 from app.utils.app_logger import get_logger
+from curl_cffi import requests
+from curl_cffi.requests import AsyncSession
 
 logger = get_logger(__name__)
 
@@ -14,28 +15,32 @@ async def get_description(session, id, basket_number):
     else:
         url = f"https://basket-{basket_number}.wbbasket.ru/vol{str(id)[:4]}/part{str(id)[:6]}/{str(id)}/info/ru/card.json"
 
-    async with session.get(url) as response:
-        if response.status != 200:
-            logger.warning("Status code other than 200. Local or Server error?")
+    try:
+        response = await session.get(url, impersonate="chrome")
+        if response.status_code != 200:
+            logger.error("Status code other than 200. Local or Server error?")
             return None
-        
-        desc = await response.json()
-        
+
+        desc = response.json()   
         if "description" in desc:
             return desc["description"]
         else:
             logger.warning("Description not found.")
             return None
+    except (requests.exceptions.RequestException, json.JSONDecodeError) as e:
+        logger.error(f"Error occurred: {e}")
+        return None
         
 async def get_category(session, id, brandid, subjectid, kindid):
     url = f"https://www.wildberries.ru/webapi/product/{id}/data?subject={subjectid}&kind={kindid}&brand={brandid}"
 
-    async with session.get(url) as response:
-        if response.status != 200:
-            logger.warning("Status code other than 200. Local or Server error?")
+    try:
+        response = await session.get(url, impersonate="chrome")
+        if response.status_code != 200:
+            logger.error("Status code other than 200. Local or Server error?")
             return None
-        
-        category = await response.json()
+
+        category = response.json()
 
         if "value" in category:
             site_path = category["value"].get("data", {}).get("sitePath", [])
@@ -50,47 +55,36 @@ async def get_category(session, id, brandid, subjectid, kindid):
                     parsed_data[key_eng] = page_url.split('/')[-1]
             return parsed_data
         else:
-            logger.warning("category not found.")
+            logger.warning("Category not found.")
             return None
+    except (requests.exceptions.RequestException, json.JSONDecodeError) as e:
+        logger.error(f"Error occurred: {e}")
+        return None
 
 async def get_data(query):
     
     url = fr'https://search.wb.ru/exactmatch/ru/common/v7/search?ab_testid=rerank_ksort_promo&appType=1&curr=rub&dest=-284542&query={query}&resultset=catalog&sort=popular&spp=30&suppressSpellcheck=false'
     
-    headers = {
-        'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64; rv:130.0) Gecko/20100101 Firefox/130.0',
-        'Accept': '*/*',
-        'Accept-Language': 'ru-RU,ru;q=0.8,en-US;q=0.5,en;q=0.3',
-        'Accept-Encoding': 'gzip, deflate, br, zstd',
-        'Origin': 'https://www.wildberries.ru',
-        'Connection': 'keep-alive',
-        'Referer': 'https://www.wildberries.ru/',
-        'Sec-Fetch-Dest': 'empty',
-        'Sec-Fetch-Mode': 'cors',
-        'Sec-Fetch-Site': 'cross-site',
-        'Priority': 'u=4'
-    }
-    
-    async with aiohttp.ClientSession() as session:
+    async with AsyncSession() as session:
         while True:    
-            async with session.get(url, headers=headers) as response:     
-                if response.status == 200:
-                    try:
-                        text = await response.text()
-                        data = json.loads(text)
-                        verify = await data_validation(data)
-                        if verify is not None:
-                            logger.info("Success data extraction.")
-                            return await get_details_from_json(session, data)  
-                        else:
-                            raise DataValidationError()  
-                    except json.JSONDecodeError:
-                        logger.error("JSON decode error.")
-                    except DataValidationError:
-                        logger.error("Data validation error, restart in 3 seconds.")
-                        await asyncio.sleep(3)
-                else:
-                    logger.error(f"Request error, status code is {response.status}")
+            response = await session.get(url, impersonate="chrome")     
+            if response.status_code == 200:
+                try:
+                    text = response.text
+                    data = json.loads(text)
+                    verify = await data_validation(data)
+                    if verify is not None:
+                        logger.info("Success data extraction.")
+                        return await get_details_from_json(session, data)  
+                    else:
+                        raise DataValidationError()  
+                except json.JSONDecodeError:
+                    logger.error("JSON decode error.")
+                except DataValidationError:
+                    logger.error("Data validation error, restart in 3 seconds.")
+                    await asyncio.sleep(3)
+            else:
+                logger.error(f"Request error, status code is {response.status_code}")
 
 async def process_requests(search_queries):
     tasks = []
