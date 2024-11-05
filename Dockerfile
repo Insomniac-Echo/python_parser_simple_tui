@@ -19,10 +19,9 @@ RUN echo "deb [arch=amd64] http://dl.google.com/linux/chrome/deb/ stable main" >
 RUN wget -q -O - https://dl.google.com/linux/linux_signing_key.pub | gpg --dearmor > /etc/apt/trusted.gpg.d/google-chrome.gpg
 RUN apt-get update && apt-get install google-chrome-stable=* -y
 
-
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
-
+ENV POETRY_VIRTUALENVS_CREATE=false
 
 ARG UID=10001
 RUN adduser \
@@ -37,24 +36,14 @@ RUN mkdir -p /app
 RUN chown appuser:appuser /app
 WORKDIR /app
 
-
-# RUN --mount=type=cache,target=/root/.cache/pip \
-#     --mount=type=bind,source=requirements.txt,target=requirements.txt \
-#     python -m pip install -r requirements.txt
-
 RUN pip install poetry
 COPY --chown=appuser:appuser pyproject.toml poetry.lock ./
-
-RUN poetry config virtualenvs.create false \
-    && poetry install --no-root
+RUN poetry install --no-root
 
 USER appuser
-
 COPY --chown=appuser:appuser --chmod=755 . .
 
-
 EXPOSE 8000
-
 
 RUN Xvfb :99 -screen 0 1600x900x24 > /dev/null 2>&1 & \
     export DISPLAY=:99
