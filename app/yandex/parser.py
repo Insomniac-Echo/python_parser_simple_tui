@@ -13,6 +13,7 @@ from bs4 import BeautifulSoup
 import pickle
 import traceback
 from app.utils.app_logger import get_logger
+import gc
 
 logger = get_logger(__name__)
 
@@ -98,13 +99,11 @@ def extract_ids_from_link(link):
 
 def get_searchpage_cards(driver, url, max_cards):
     driver.get(url)
-    scrolldown(driver, 30)
+    scrolldown(driver, 24)
     time.sleep(1)
     search_page_html = BeautifulSoup(driver.page_source, "html.parser")
     content = search_page_html.find_all(attrs={"data-auto": "snippet-link"})
     logger.info(f"Found {len(content)} product cards on page.")
-    with open('search_page_html.html', 'w', encoding='utf-8') as file:
-        file.write(str(search_page_html))
 
     if len(content) >= 3:
         links = set()
@@ -131,10 +130,15 @@ def get_searchpage_cards(driver, url, max_cards):
                 logger.error(f"Error processing link: {e}")
                 logger.error(f"Traceback: {traceback.format_exc()}")
 
+            gc.collect()
+
         formatted_data_all = []
         for response, link in responses:
             formatted_data = get_details_from_json(response, link)
             formatted_data_all.extend(formatted_data)
+
+        gc.collect()
+
         logger.info('Данные отформатированы!')
 
         return formatted_data_all
@@ -148,7 +152,7 @@ def get_cookie(driver):
             wish_list_button = WebDriverWait(driver, 10).until(
                 EC.element_to_be_clickable((By.CSS_SELECTOR, 'button._63Rdu._3PoE9[title="Добавить в избранное"]'))
             )
-            wish_list_button.click()
+            wish_list_button.click()    
             time.sleep(2)
             cookies = driver.get_cookies()
             with open('cookies.pkl', 'wb') as file:
@@ -156,11 +160,42 @@ def get_cookie(driver):
             sk_value = capture_post_request(driver)
             return sk_value
         except TimeoutException:
-            logger.warning(f"Button not found on attempt {retry_count + 1}. Refreshing page.")
-            driver.refresh()
-            retry_count += 1
+            logger.warning(f"First selector not found on attempt {retry_count + 1}.")
+            try:
+                close_button = WebDriverWait(driver, 5).until(
+                    EC.element_to_be_clickable((By.CSS_SELECTOR, 'button[data-auto="close-popup"]'))
+                )
+                close_button.click()
+                logger.info("Popup closed.")
+                wish_list_button = WebDriverWait(driver, 10).until(
+                    EC.element_to_be_clickable((By.CSS_SELECTOR, 'button._63Rdu._3PoE9[title="Добавить в избранное"]'))
+                )
+                wish_list_button.click()    
+                time.sleep(2)
+                cookies = driver.get_cookies()
+                with open('cookies.pkl', 'wb') as file:
+                    pickle.dump(cookies, file)
+                sk_value = capture_post_request(driver)
+                return sk_value
+            except TimeoutException:
+                logger.warning(f"Popup not found. Trying second selector.")
+                try:
+                    wish_list_button = WebDriverWait(driver, 10).until(
+                        EC.element_to_be_clickable((By.CSS_SELECTOR, 'button._63Rdu[title="Добавить в избранное"]'))
+                    )
+                    wish_list_button.click()    
+                    time.sleep(2)
+                    cookies = driver.get_cookies()
+                    with open('cookies.pkl', 'wb') as file:
+                        pickle.dump(cookies, file)
+                    sk_value = capture_post_request(driver)
+                    return sk_value
+                except TimeoutException:
+                    logger.warning(f"Second selector not found on attempt {retry_count + 1}.")
+                    retry_count += 1
 
     logger.error(f"Button not found after {max_retries} attempts. Exiting.")
+    driver.quit()
     return None
 
 def capture_post_request(driver):
@@ -227,6 +262,9 @@ def get_details_from_json(response, full_link):
                 breadcrumbs_formatted[key] = text
                 breadcrumbs_formatted[key_eng] = param.get('categorySlug')
 
+        if base_price is None:
+            base_price = 0 
+
         data_list.append({
             'id_src': int(id),
             'name': name,
@@ -268,5 +306,8 @@ def yandex_parser(query, limit):
                 data = False
                 logger.error("Couldn't catch data from Ya.Market after 10 tries.")
                 break
+
+    gc.collect()
+
     logger.info("Parse Ya.Market operation successfull. Sending data.")
     return data

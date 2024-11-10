@@ -7,6 +7,7 @@ from urllib.parse import urlparse, urlunparse
 from bs4 import BeautifulSoup
 from app.ozon.entities import InvalidCardProccesing
 from app.utils.app_logger import get_logger
+import gc
 
 logger = get_logger(__name__)
 
@@ -17,8 +18,7 @@ def chrome_start(url):
     options.add_argument("--log-level=3")
     options.add_argument("--start-maximized")
     options.add_argument("--no-sandbox")
-    options.add_argument("user-agent=Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36")
-    options.add_argument("--disable-blink-features=AutomationControlled")
+    options.add_argument("user-agent=Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/129.0.0.0 Safari/537.36")
     options.add_argument("--disable-blink-features")
     options.add_argument('--disable-dev-shm-usage')        
     driver = uc.Chrome(options = options, version_main=129)
@@ -115,6 +115,8 @@ def get_searchpage_cards(driver, url, limit, all_cards=None):
             logger.warning(f"Error processing card: {card}")
             logger.error(f"Error message: {e}")
 
+        gc.collect()
+
     content_with_next = [div for div in content.find_all("a", href=True) if "Дальше" in str(div)]
     if not content_with_next or (limit is not None and len(all_cards) + len(cards_in_page) >= limit):
         all_cards.extend(cards_in_page)
@@ -139,6 +141,9 @@ def ozon_parser(query, limit):
             break
         except InvalidCardProccesing:
             logger.error("Product card processing error.")
+
+    gc.collect()
+
     driver.quit()
     
     logger.info("Parse Ozon operation successfull. Sending data.")
