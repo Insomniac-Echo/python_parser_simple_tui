@@ -11,6 +11,8 @@
   services:
     server:
 #      user: 
+      restart: always
+      mem_limit: 5g
       build:
         context: .
       ports:
