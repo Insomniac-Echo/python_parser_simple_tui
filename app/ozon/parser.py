@@ -3,6 +3,7 @@ from curl_cffi import requests
 import time
 import json
 import re
+import emoji
 from urllib.parse import urlparse, urlunparse
 from bs4 import BeautifulSoup
 from app.ozon.entities import InvalidCardProccesing
@@ -28,6 +29,9 @@ def scrolldown(driver, num_scrolls):
     for _ in range(num_scrolls):
         driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
         time.sleep(0.2)
+
+def remove_emojis(text):
+    return emoji.replace_emoji(text, '')
 
 def get_product_info(product_url):
     session = requests.Session()
@@ -63,6 +67,9 @@ def get_product_info(product_url):
         if rating is None or rating_counter is None:
             rating = 0.0
             rating_counter = 0
+
+        if description:
+            description = remove_emojis(description)
 
         return (brand, product_id, full_name, description, price, rating, rating_counter, image_url, breadcrumbs_data, hierarchy)
 

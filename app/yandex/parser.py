@@ -8,6 +8,7 @@ from selenium.common.exceptions import TimeoutException
 from curl_cffi import requests
 import time
 import json
+import emoji
 from urllib.parse import urlparse, parse_qs
 from bs4 import BeautifulSoup
 import pickle
@@ -210,6 +211,9 @@ def capture_post_request(driver):
     driver.quit()
     return sk_value
 
+def remove_emojis(text):
+    return emoji.replace_emoji(text, '')
+
 def get_details_from_json(response, full_link):
     data_list = []
     
@@ -236,6 +240,9 @@ def get_details_from_json(response, full_link):
         description_text = None
         for key, value in description.items():
             description_text = value.get('text')
+
+        if description_text:
+            description_text = remove_emojis(description_text)
 
         img_url = None
         feedbacks = None
