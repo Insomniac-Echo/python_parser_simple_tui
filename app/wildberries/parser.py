@@ -3,6 +3,7 @@ import asyncio
 from app.wildberries.entities import DataValidationError, InvalidContentJSON
 from app.utils.app_logger import get_logger
 from curl_cffi import requests
+import re
 from curl_cffi.requests import AsyncSession
 
 logger = get_logger(__name__)
@@ -164,6 +165,17 @@ def get_basket_number(id):
     else:
         return "19" 
 
+def remove_emojis(text):
+    emoji_remove = re.compile("["
+                               u"\U0001F600-\U0001F64F"
+                               u"\U0001F300-\U0001F5FF"
+                               u"\U0001F680-\U0001F6FF"
+                               u"\U0001F1E0-\U0001F1FF"
+                               u"\U00002702-\U000027B0"
+                               u"\U000024C2-\U0001F251"
+                               "]+", flags=re.UNICODE)
+    return emoji_remove.sub(r'', text)
+
 async def get_details_from_json(session, response):
     logger.info("Formatting data.")
     data_list = []
@@ -172,7 +184,7 @@ async def get_details_from_json(session, response):
         name = data.get('name')
         cashback = data.get('feedbackPoints')
         sale = data.get('sale')
-        brand = data.get('brand')
+        brand = remove_emojis(data.get('brand'))
         brandid = data.get('brandId')
         subjectid = data.get('subjectId')
         kindid = data.get('kindId')
