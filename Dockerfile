@@ -1,6 +1,5 @@
 # syntax=docker/dockerfile:1
 
-
 ARG PYTHON_VERSION=3.12.4
 FROM python:${PYTHON_VERSION}-slim as base
 
@@ -13,11 +12,18 @@ RUN apt-get update && apt-get install -y \
     wget \
     curl \
     htop \
-    gnupg
+    gnupg \
+    unzip
 
 RUN echo "deb [arch=amd64] http://dl.google.com/linux/chrome/deb/ stable main" > /etc/apt/sources.list.d/google-chrome.list
 RUN wget -q -O - https://dl.google.com/linux/linux_signing_key.pub | gpg --dearmor > /etc/apt/trusted.gpg.d/google-chrome.gpg
-RUN apt-get update && apt-get install google-chrome-stable=* -y
+RUN apt-get update && apt-get install -y google-chrome-stable
+RUN LATEST_CHROME_DRIVER_VERSION=$(curl -sS https://googlechromelabs.github.io/chrome-for-testing/LATEST_RELEASE_STABLE) \
+    && CHROME_DRIVER_URL="https://edgedl.me.gvt1.com/edgedl/chrome/chrome-for-testing/$LATEST_CHROME_DRIVER_VERSION/linux64/chromedriver-linux64.zip" \
+    && wget -O /tmp/chromedriver.zip $CHROME_DRIVER_URL \
+    && unzip /tmp/chromedriver.zip -d /tmp/ \
+    && mv /tmp/chromedriver-linux64/chromedriver /usr/local/bin/chromedriver \
+    && rm -rf /tmp/chromedriver-linux64 /tmp/chromedriver.zip
 
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
