@@ -121,7 +121,7 @@ def get_searchpage_cards(driver, url, limit, all_cards=None):
         except Exception as e:
             logger.warning(f"Error processing card: {card}")
             logger.error(f"Error message: {e}")
-
+            driver.quit()
         gc.collect()
 
     content_with_next = [div for div in content.find_all("a", href=True) if "Дальше" in str(div)]
