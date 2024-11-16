@@ -8,6 +8,7 @@ from selenium.common.exceptions import TimeoutException
 from curl_cffi import requests
 import time
 import json
+import os
 import emoji
 from urllib.parse import urlparse, parse_qs
 from bs4 import BeautifulSoup
@@ -37,7 +38,9 @@ def get_product_info(full_link, sk_value):
     session = requests.Session()
     url = 'https://market.yandex.ru/api/resolve/?r=src/resolvers/productPage/resolveProductCardRemote:resolveProductCardRemote'
 
-    with open('cookies.pkl', 'rb') as file:
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    cookies_file_path = os.path.join(script_dir, 'cookies.pkl')
+    with open(cookies_file_path, 'rb') as file:
         cookies = pickle.load(file)
 
     cookie2 = {}
@@ -98,10 +101,27 @@ def extract_ids_from_link(link):
     sku_id = query_params.get('sku', [None])[0]
     return product_id, business_id, sku_id
 
+def verify_age(driver):
+    try:
+        confirmation_button = WebDriverWait(driver, 10).until(
+            EC.element_to_be_clickable((By.CSS_SELECTOR, "button._3CCE-._1Mcpo._3SgQk"))
+        )
+        confirmation_button.click()
+        time.sleep(2)
+        WebDriverWait(driver, 10).until_not(
+            EC.presence_of_element_located((By.CSS_SELECTOR, "button._3CCE-._1Mcpo._3SgQk"))
+        )
+        
+        logger.info('Passed age verification')
+    except Exception as e:
+        logger.warning(f"Age verification failed: {e}")
+
+
 def get_searchpage_cards(driver, url, max_cards):
     driver.get(url)
-    scrolldown(driver, 24)
-    time.sleep(1)
+    verify_age(driver)
+    time.sleep(3)
+    scrolldown(driver, 20)
     search_page_html = BeautifulSoup(driver.page_source, "html.parser")
     content = search_page_html.find_all(attrs={"data-auto": "snippet-link"})
     logger.info(f"Found {len(content)} product cards on page.")
@@ -156,7 +176,9 @@ def get_cookie(driver):
             wish_list_button.click()    
             time.sleep(2)
             cookies = driver.get_cookies()
-            with open('cookies.pkl', 'wb') as file:
+            script_dir = os.path.dirname(os.path.abspath(__file__))
+            cookies_file_path = os.path.join(script_dir, 'cookies.pkl')
+            with open(cookies_file_path, 'wb') as file:
                 pickle.dump(cookies, file)
             sk_value = capture_post_request(driver)
             return sk_value
@@ -174,7 +196,9 @@ def get_cookie(driver):
                 wish_list_button.click()    
                 time.sleep(2)
                 cookies = driver.get_cookies()
-                with open('cookies.pkl', 'wb') as file:
+                script_dir = os.path.dirname(os.path.abspath(__file__))
+                cookies_file_path = os.path.join(script_dir, 'cookies.pkl')
+                with open(cookies_file_path, 'wb') as file:
                     pickle.dump(cookies, file)
                 sk_value = capture_post_request(driver)
                 return sk_value
@@ -187,7 +211,9 @@ def get_cookie(driver):
                     wish_list_button.click()    
                     time.sleep(2)
                     cookies = driver.get_cookies()
-                    with open('cookies.pkl', 'wb') as file:
+                    script_dir = os.path.dirname(os.path.abspath(__file__))
+                    cookies_file_path = os.path.join(script_dir, 'cookies.pkl')
+                    with open(cookies_file_path, 'wb') as file:
                         pickle.dump(cookies, file)
                     sk_value = capture_post_request(driver)
                     return sk_value
