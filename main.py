@@ -4,7 +4,7 @@ from fastapi import FastAPI, HTTPException, BackgroundTasks
 from sbvirtualdisplay import Display
 from contextlib import asynccontextmanager
 
-from app.wildberries.parser import get_data, process_requests
+from app.wildberries.parser import get_data
 from app.ozon.parser import ozon_parser
 from app.yandex.parser import yandex_parser
 from app.utils.app_logger import get_logger 
