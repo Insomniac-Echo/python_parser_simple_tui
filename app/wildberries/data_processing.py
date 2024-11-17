@@ -22,7 +22,7 @@ async def get_description(session, id, basket_number):
     try:
         response = await session.get(url, impersonate="chrome")
         if response.status_code != 200:
-            logger.error("Status code other than 200. Local or Server error?")
+            logger.error(f"Status code other than 200. Local or Server error? Status code: {response.status_code}")
             return None
 
         desc = response.json()   
@@ -80,6 +80,8 @@ async def get_image_url(session, id, basket_number):
 #Функция для пост-обработки JSON данных о товарах,
 #возможно, в будущем будет deprecated из-за внедрения pydantic
 #(слияние с основной функцией парсера)
+#Нужна доработка последних полей начиная с img_url до categories:
+#доработка кода или же модели
 async def get_details_from_json(session, response):
     logger.info("Formatting data.")
     data_list = []
@@ -102,9 +104,16 @@ async def get_details_from_json(session, response):
             'logistics_price': data.get('sizes', [{}])[0].get('price', {}).get('logistics'),
             'return_price': data.get('sizes', [{}])[0].get('price', {}).get('return'),
             'link': f'https://www.wildberries.ru/catalog/{data.get("id")}/detail.aspx?targetUrl=BP',
-            'img_url': await get_image_url(session, data.get('id'), get_basket_number(data.get('id'))),
-            'description': await get_description(session, data.get('id'), get_basket_number(data.get('id'))),
-            'category': await get_category(session, data.get('id'), data.get('brandId'), data.get('subjectId'), data.get('kindId'))
+            'img_url': await get_image_url(session, data.get('id'), 
+                             get_basket_number(data.get('id'))),
+            'description': await get_description(session, data.get('id'),
+                                 get_basket_number(data.get('id'))),
+            'category': await get_category(
+                session,
+                data.get('id'),
+                data.get('brandId'),
+                data.get('subjectId'),
+                data.get('kindId'))
         }
 
         try:
