@@ -14,4 +14,7 @@ def get_logger(name):
     logger = logging.getLogger(name)
     logger.setLevel(logging.DEBUG)
     logger.addHandler(stream_handler())
+    
     return logger
+
+logging.getLogger('passlib').setLevel(logging.ERROR)
