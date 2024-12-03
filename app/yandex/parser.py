@@ -177,7 +177,9 @@ def get_cookie(driver):
             wish_list_button.click()    
             time.sleep(2)
             cookies = driver.get_cookies()
-            with open('cookies.pkl', 'wb') as file:
+            script_dir = os.path.dirname(os.path.abspath(__file__))
+            cookies_file_path = os.path.join(script_dir, 'cookies.pkl')
+            with open(cookies_file_path, 'wb') as file:
                 pickle.dump(cookies, file)
             sk_value = capture_post_request(driver)
             return sk_value
@@ -200,7 +202,9 @@ def get_cookie(driver):
                     wish_list_button.click()    
                     time.sleep(2)
                     cookies = driver.get_cookies()
-                    with open('cookies.pkl', 'wb') as file:
+                    script_dir = os.path.dirname(os.path.abspath(__file__))
+                    cookies_file_path = os.path.join(script_dir, 'cookies.pkl')
+                    with open(cookies_file_path, 'wb') as file:
                         pickle.dump(cookies, file)
                     sk_value = capture_post_request(driver)
                     return sk_value
