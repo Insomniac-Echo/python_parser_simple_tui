@@ -174,7 +174,7 @@ def get_cookie(driver):
             wish_list_button = WebDriverWait(driver, 10).until(
                 EC.element_to_be_clickable((By.CSS_SELECTOR, 'button._63Rdu._3PoE9[title="Добавить в избранное"]'))
             )
-            wish_list_button.click()    
+            driver.execute_script("arguments[0].click();", wish_list_button)
             time.sleep(2)
             cookies = driver.get_cookies()
             script_dir = os.path.dirname(os.path.abspath(__file__))
@@ -184,36 +184,11 @@ def get_cookie(driver):
             sk_value = capture_post_request(driver)
             return sk_value
         except TimeoutException:
-            logger.warning(f"First selector not found on attempt {retry_count + 1}.")
-            try:
-                wish_list_button = driver.find_element(By.CSS_SELECTOR, 'button._63Rdu._3PoE9[title="Добавить в избранное"]')
-                if not wish_list_button.is_displayed() or not wish_list_button.is_enabled():
-                    driver.find_element(By.TAG_NAME, 'body').send_keys(Keys.ESCAPE)
-                    time.sleep(1)
-                    continue
-                else:
-                    raise TimeoutException("Button is not clickable")
-            except TimeoutException:
-                logger.warning(f"Popup not found. Trying second selector.")
-                try:
-                    wish_list_button = WebDriverWait(driver, 10).until(
-                        EC.element_to_be_clickable((By.CSS_SELECTOR, 'button._63Rdu[title="Добавить в избранное"]'))
-                    )
-                    wish_list_button.click()    
-                    time.sleep(2)
-                    cookies = driver.get_cookies()
-                    script_dir = os.path.dirname(os.path.abspath(__file__))
-                    cookies_file_path = os.path.join(script_dir, 'cookies.pkl')
-                    with open(cookies_file_path, 'wb') as file:
-                        pickle.dump(cookies, file)
-                    sk_value = capture_post_request(driver)
-                    return sk_value
-                except TimeoutException:
-                    logger.warning(f"Second selector not found on attempt {retry_count + 1}.")
-                    retry_count += 1
+            logger.warning(f"Button not found on attempt {retry_count + 1}. Pressing ESC.")
+            driver.find_element(By.TAG_NAME, 'body').send_keys(Keys.ESCAPE)
+            retry_count += 1
 
     logger.error(f"Button not found after {max_retries} attempts. Exiting.")
-    driver.quit()
     return None
 
 def capture_post_request(driver):
