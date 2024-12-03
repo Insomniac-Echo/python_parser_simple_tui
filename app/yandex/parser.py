@@ -5,6 +5,7 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.common.desired_capabilities import DesiredCapabilities
 from selenium.common.exceptions import TimeoutException
+from selenium.webdriver.common.keys import Keys
 from curl_cffi import requests
 import time
 import json
@@ -176,32 +177,20 @@ def get_cookie(driver):
             wish_list_button.click()    
             time.sleep(2)
             cookies = driver.get_cookies()
-            script_dir = os.path.dirname(os.path.abspath(__file__))
-            cookies_file_path = os.path.join(script_dir, 'cookies.pkl')
-            with open(cookies_file_path, 'wb') as file:
+            with open('cookies.pkl', 'wb') as file:
                 pickle.dump(cookies, file)
             sk_value = capture_post_request(driver)
             return sk_value
         except TimeoutException:
             logger.warning(f"First selector not found on attempt {retry_count + 1}.")
             try:
-                close_button = WebDriverWait(driver, 5).until(
-                    EC.element_to_be_clickable((By.CSS_SELECTOR, 'button[data-auto="close-popup"]'))
-                )
-                close_button.click()
-                logger.info("Popup closed.")
-                wish_list_button = WebDriverWait(driver, 10).until(
-                    EC.element_to_be_clickable((By.CSS_SELECTOR, 'button._63Rdu._3PoE9[title="Добавить в избранное"]'))
-                )
-                wish_list_button.click()    
-                time.sleep(2)
-                cookies = driver.get_cookies()
-                script_dir = os.path.dirname(os.path.abspath(__file__))
-                cookies_file_path = os.path.join(script_dir, 'cookies.pkl')
-                with open(cookies_file_path, 'wb') as file:
-                    pickle.dump(cookies, file)
-                sk_value = capture_post_request(driver)
-                return sk_value
+                wish_list_button = driver.find_element(By.CSS_SELECTOR, 'button._63Rdu._3PoE9[title="Добавить в избранное"]')
+                if not wish_list_button.is_displayed() or not wish_list_button.is_enabled():
+                    driver.find_element(By.TAG_NAME, 'body').send_keys(Keys.ESCAPE)
+                    time.sleep(1)
+                    continue
+                else:
+                    raise TimeoutException("Button is not clickable")
             except TimeoutException:
                 logger.warning(f"Popup not found. Trying second selector.")
                 try:
@@ -211,9 +200,7 @@ def get_cookie(driver):
                     wish_list_button.click()    
                     time.sleep(2)
                     cookies = driver.get_cookies()
-                    script_dir = os.path.dirname(os.path.abspath(__file__))
-                    cookies_file_path = os.path.join(script_dir, 'cookies.pkl')
-                    with open(cookies_file_path, 'wb') as file:
+                    with open('cookies.pkl', 'wb') as file:
                         pickle.dump(cookies, file)
                     sk_value = capture_post_request(driver)
                     return sk_value
