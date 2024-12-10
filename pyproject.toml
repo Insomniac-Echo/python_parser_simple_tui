@@ -41,6 +41,7 @@ sqlalchemy = "^2.0.36"
 asyncpg = "^0.30.0"
 fastapi-users = {extras = ["sqlalchemy"], version = "^14.0.0"}
 emoji = "^2.14.0"
+aiomysql = "^0.2.0"
 
 
 [build-system]

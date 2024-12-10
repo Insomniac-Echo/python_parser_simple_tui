@@ -5,11 +5,27 @@ from sbvirtualdisplay import Display
 from contextlib import asynccontextmanager
 
 from app.wildberries.parser import get_data
+from app.wildberries.parser_category import get_data_say_gex
 from app.ozon.parser import ozon_parser
 from app.yandex.parser import yandex_parser
-from app.utils.app_logger import get_logger 
+from app.utils.app_logger import get_logger
+
+from app.wildberries.database import init_db
+from app.wildberries.category_processor import process_and_save
+from sqlalchemy.orm import sessionmaker
+from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
+
 
 logger = get_logger(__name__)
+
+username='parser'
+password='testpass'
+host='127.0.0.1'
+port='3306'
+database = 'testdata'
+DATABASE_URL = f"mysql+aiomysql://{username}:{password}@{host}:{port}/{database}"
+engine = create_async_engine(DATABASE_URL, echo=True)
+SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine, class_=AsyncSession)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -29,6 +45,9 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         logger.error(f"Unexpected error starting Virtual Display: {str(e)}")
     
+    await init_db(engine)
+    logger.info("Database initialized successfully.")
+
     yield
     
     virtual_display.stop()
@@ -49,6 +68,15 @@ async def search_single_wb(query: str):
         logger.info(f"New single request for WB: {query}.")
         data = await get_data(query)
         return {"query": query, "data": data}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    
+@app.get("/search/wb/category")
+async def search_category():
+    try:
+        logger.info("Category parse request start")
+        data = await process_and_save(SessionLocal)
+        return {"data": True}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 

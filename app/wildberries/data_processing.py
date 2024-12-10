@@ -118,7 +118,7 @@ async def get_details_from_json(session, response):
 
         try:
             product = Product(**product_properties)
-            data_list.append(product)
+            data_list.append(product.model_dump())
         except ValidationError as e:
             logger.error(f"Validation error for product {data.get('id')}: {e}")
 
