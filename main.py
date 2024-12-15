@@ -18,11 +18,11 @@ from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 
 logger = get_logger(__name__)
 
-username='parser'
-password='testpass'
-host='127.0.0.1'
+username='root'
+password='261520'
+host='192.168.1.146'
 port='3306'
-database = 'testdata'
+database = 'wb'
 DATABASE_URL = f"mysql+aiomysql://{username}:{password}@{host}:{port}/{database}"
 engine = create_async_engine(DATABASE_URL, echo=True)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine, class_=AsyncSession)
