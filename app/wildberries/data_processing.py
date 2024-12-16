@@ -41,12 +41,14 @@ async def get_category(session, id, brandid, subjectid, kindid):
 
     try:
         response = await session.get(url, impersonate="chrome")
-        if response.status_code != 200:
-            logger.error("Status code other than 200. Local or Server error?")
+        if response.status_code == 404:
+            logger.warning(f"Category not found for product ID {id}. Status code: {response.status_code}")
+            return None
+        elif response.status_code != 200:
+            logger.error(f"Status code other than 200 or 404. Local or Server error? Status code: {response.status_code}")
             return None
 
         category = response.json()
-
         if "value" in category:
             site_path = category["value"].get("data", {}).get("sitePath", [])
             parsed_data = {}
@@ -60,10 +62,10 @@ async def get_category(session, id, brandid, subjectid, kindid):
                     parsed_data[key_eng] = page_url.split('/')[-1]
             return parsed_data
         else:
-            logger.warning("Category not found.")
+            logger.warning(f"Category not found for product ID {id}.")
             return None
     except (requests.exceptions.RequestException, json.JSONDecodeError) as e:
-        logger.error(f"Error occurred: {e}")
+        logger.error(f"Error occurred while fetching category for product ID {id}: {e}")
         return None
 
 #Функция для получения ссылки на изображение карточки товара.
@@ -115,6 +117,10 @@ async def get_details_from_json(session, response):
                 data.get('subjectId'),
                 data.get('kindId'))
         }
+
+        if product_properties['category'] is not None:
+            product_properties['category'].setdefault('name_1', None)
+            product_properties['category'].setdefault('name_1_eng', None)
 
         try:
             product = Product(**product_properties)
