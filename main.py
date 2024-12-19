@@ -1,13 +1,31 @@
-from fastapi import FastAPI, HTTPException
+import asyncio
+import uvicorn
+from fastapi import FastAPI, HTTPException, BackgroundTasks
 from sbvirtualdisplay import Display
 from contextlib import asynccontextmanager
 
-from app.wildberries.parser import get_data, process_requests
+from app.wildberries.parser import get_data
+from app.wildberries.parser_category import get_data_say_gex
 from app.ozon.parser import ozon_parser
 from app.yandex.parser import yandex_parser
-from app.utils.app_logger import get_logger 
+from app.utils.app_logger import get_logger
+
+from app.wildberries.database import init_db
+from app.wildberries.category_processor import process_and_save
+from sqlalchemy.orm import sessionmaker
+from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
+
 
 logger = get_logger(__name__)
+
+username='root'
+password='261520'
+host='192.168.1.146'
+port='3306'
+database = 'wb'
+DATABASE_URL = f"mysql+aiomysql://{username}:{password}@{host}:{port}/{database}"
+engine = create_async_engine(DATABASE_URL, echo=True)
+SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine, class_=AsyncSession)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -27,6 +45,9 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         logger.error(f"Unexpected error starting Virtual Display: {str(e)}")
     
+    await init_db(engine)
+    logger.info("Database initialized successfully.")
+
     yield
     
     virtual_display.stop()
@@ -35,6 +56,11 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(lifespan=lifespan)
 
+async def background_task(task):
+    try:
+        await task
+    except Exception as e:
+        logger.error(f"Error processing background task: {e}")
 
 @app.get("/search/wb")
 async def search_single_wb(query: str):
@@ -44,47 +70,37 @@ async def search_single_wb(query: str):
         return {"query": query, "data": data}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
-
-
-@app.post("/search/wb/multiple")
-async def search_multiple_wb(queries: list[str]):
-    try:
-        logger.info("New multiple request for WB.")
-        results = await process_requests(queries)
-        return results
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
     
-@app.get("/search/ozon")
-def search_single_ozon(query: str, limit: int):
+@app.get("/search/wb/category")
+async def search_category():
     try:
-        logger.info(f"New single request for Ozon: {query} with limit by {limit}.")
-        data = ozon_parser(query, limit)
+        logger.info("Category parse request start")
+        data = await process_and_save(SessionLocal)
+        return {"data": True}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/search/ozon")
+async def search_single_ozon(query: str, limit: int, background_tasks: BackgroundTasks):
+    try:
+        logger.info(f"New request for Ozon: {query} with limit by {limit} pieces.")
+        task = asyncio.create_task(asyncio.to_thread(ozon_parser, query, limit))
+        background_tasks.add_task(background_task, task)
+        data = await task
         return {"query": query, "limit": limit, "data": data}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-
-@app.post("/search/ozon/multiple")
-async def search_multiple_ozon(queries: list[str]):
+@app.post("/search/yandex")
+async def search_single_yandex(query: str, limit: int, background_tasks: BackgroundTasks):
     try:
-        pass
-    except Exception as e:
-        print(e)
-
-
-@app.get("/search/yandex")
-def search_single_yandex(query: str, limit: int):
-    try:
-        logger.info(f"New single request for Yandex.Market: {query} with limit by {limit}.")
-        data = yandex_parser(query, limit)
+        logger.info(f"New request for Yandex.Market: {query} with limit by {limit} pieces.")
+        task = asyncio.create_task(asyncio.to_thread(yandex_parser, query, limit))
+        background_tasks.add_task(background_task, task)
+        data = await task
         return {"query": query, "limit": limit, "data": data}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-@app.post("/search/yandex/multiple")
-async def search_multiple_yandex(queries: list[str]):
-    try:
-        pass
-    except Exception as e:
-        print(e)
+if __name__ == "__main__":
+    uvicorn.run("main:app", host="0.0.0.0", port=8000, workers=4)
