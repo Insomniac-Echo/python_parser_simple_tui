@@ -6,6 +6,7 @@ from curl_cffi import requests
 
 logger = get_logger(__name__)
 
+# СРОЧНО доработать дроп данных в нужные таблицы в бд
 async def recursive_parse_category(category, base_url, session):
     page = 1
     while True:

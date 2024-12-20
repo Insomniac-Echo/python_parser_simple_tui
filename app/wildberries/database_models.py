@@ -3,6 +3,7 @@ from sqlalchemy.ext.declarative import declarative_base
 
 Base = declarative_base()
 
+# Пересмотреть типы данных на соответствие с теми, что мы получаем из функций
 # Таблица trands
 class TrandsTable(Base):
     __tablename__ = 'trands'

@@ -14,15 +14,17 @@ from app.wildberries.database import init_db
 from app.wildberries.category_processor import process_and_save
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
+from app.middleware import TimingMiddleware
 
 
+# Нужно пробежаться по запросам и посмотреть, есть ли неоходимость что-либо скорректировать
 logger = get_logger(__name__)
 
-username='root'
-password='261520'
-host='192.168.1.146'
+username='parser'
+password='testpass'
+host='127.0.0.1'
 port='3306'
-database = 'wb'
+database = 'testdata'
 DATABASE_URL = f"mysql+aiomysql://{username}:{password}@{host}:{port}/{database}"
 engine = create_async_engine(DATABASE_URL, echo=True)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine, class_=AsyncSession)
@@ -55,6 +57,7 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(lifespan=lifespan)
+app.add_middleware(TimingMiddleware)
 
 async def background_task(task):
     try:

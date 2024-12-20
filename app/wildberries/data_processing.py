@@ -11,7 +11,7 @@ from app.models import Product
 logger = get_logger(__name__)
 
 #Функция для получения данные в поле description товара.
-async def get_description(session, id, basket_number):
+async def get_description(session, id, basket_number, name):
     if basket_number in ["01"]:
         url = f"https://basket-{basket_number}.wbbasket.ru/vol{str(id)[:2]}/part{str(id)[:4]}/{str(id)}/info/ru/card.json"
     elif basket_number in ["02", "03", "04", "05"]:
@@ -29,7 +29,7 @@ async def get_description(session, id, basket_number):
         if "description" in desc:
             return desc["description"]
         else:
-            logger.warning("Description not found.")
+            logger.warning(f"Description not found for {name}")
             return None
     except (requests.exceptions.RequestException, json.JSONDecodeError) as e:
         logger.error(f"Error occurred: {e}")
@@ -109,7 +109,8 @@ async def get_details_from_json(session, response):
             'img_url': await get_image_url(session, data.get('id'), 
                              get_basket_number(data.get('id'))),
             'description': await get_description(session, data.get('id'),
-                                 get_basket_number(data.get('id'))),
+                                 get_basket_number(data.get('id')),
+                                 data.get('name')),
             'category': await get_category(
                 session,
                 data.get('id'),

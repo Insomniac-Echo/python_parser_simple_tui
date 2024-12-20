@@ -1,6 +1,6 @@
 import logging
 
-
+#Нужно перенастроить логер для более удобоваримого вывода
 _log_format = "%(asctime)s - [%(levelname)s] - %(name)s - (%(filename)s).%(funcName)s(%(lineno)d) - %(message)s"
 
 

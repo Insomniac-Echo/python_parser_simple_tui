@@ -1,6 +1,7 @@
 from typing import Optional
 from pydantic import BaseModel, Field
 
+# Модели необходимо настроить под дроп в нужные таблицы и ячейки в бд
 class Product(BaseModel):
     id_src: int
     name: str

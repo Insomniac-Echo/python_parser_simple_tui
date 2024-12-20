@@ -6,6 +6,7 @@ from app.utils.app_logger import get_logger
 
 logger = get_logger(__name__)
 
+# Основные функции в бд, вряд ли потребуется вмешательство, но лучше тоже посмотреть save_to_db
 # Инициализация базы данных
 async def init_db(engine: AsyncEngine):
     async with engine.begin() as conn:
