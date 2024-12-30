@@ -47,3 +47,31 @@ async def get_data_say_gex(url: str, session: AsyncSession, max_retries: int = 1
 
     logger.error("Max retries reached. Exiting.")
     return None
+
+async def parse_shard_and_query(session: AsyncSession):
+    url = "https://static-basket-01.wb.ru/vol0/data/main-menu-ru-ru-v2.json"
+    try:
+        response = await session.get(url, impersonate="chrome")
+        if response.status_code == 200:
+            data = response.json()
+            shard_query_seo = []
+
+            def extract_items(items):
+                for item in items:
+                    if "shard" in item and "query" in item:
+                        shard_query_seo.append({
+                            "shard": item["shard"],
+                            "query": item["query"],
+                            "seo": item.get("seo", "")
+                        })
+                    if "childs" in item:
+                        extract_items(item["childs"])  # рекурсивно проходим childs
+
+            extract_items(data)
+            return shard_query_seo
+        else:
+            logger.error(f"Failed to fetch data from {url}. Status code: {response.status_code}")
+            return None
+    except Exception as e:
+        logger.error(f"Error parsing shard and query: {e}")
+        return None

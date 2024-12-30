@@ -1,4 +1,4 @@
-from app.wildberries.parser_category import get_data_say_gex
+from app.wildberries.parser_category import get_data_say_gex, parse_shard_and_query
 from app.wildberries.database import save_to_db, validate_foreign_keys
 from app.utils.app_logger import get_logger
 from app.wildberries.dictionary import category_links
@@ -37,12 +37,20 @@ async def recursive_parse_category(category, base_url, session):
 
 async def process_and_save(session_maker):
     async with requests.AsyncSession() as session:
-        for category, base_url in category_links.items():
+        shard_query = await parse_shard_and_query(session)
+        if not shard_query:
+            logger.error("No shard and query pairs found.")
+            return
+
+        for pair in shard_query:
             trands_data = []
             trands_info_data = []
             category_data = []
 
-            async for items in recursive_parse_category(category, base_url, session):
+            #юрлка для каждой категории
+            base_url = f"https://catalog.wb.ru/catalog/{pair['shard']}/v2/catalog?ab_testing=false&appType=1&{pair['query']}&curr=rub&dest=-284542&hide_dtype=10&lang=ru&sort=popular&spp=30"
+
+            async for items in recursive_parse_category(pair['seo'], base_url, session):
                 for item in items:
                     trands_data.append({
                         "id_src": item["id_src"],
@@ -55,7 +63,7 @@ async def process_and_save(session_maker):
                         "count_sales": 0,
                         "on_stock": 0,
                     })
-
+                
                     trands_info_data.append({
                         "id_trands": item["id_src"],
                         "name": item["name"],
@@ -76,7 +84,7 @@ async def process_and_save(session_maker):
 
             trands_info_data, category_data = validate_foreign_keys(trands_data, trands_info_data, category_data)
 
-            logger.info(f"Saving data for category: {category}")
+            logger.info(f"Saving data for shard: {pair['shard']}")
             await save_to_db(trands_data, trands_info_data, category_data, session_maker)
 
     logger.info("All categories processed and saved.")
