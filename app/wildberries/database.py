@@ -1,7 +1,7 @@
 from sqlalchemy.ext.asyncio import AsyncEngine
 from sqlalchemy import insert
 from sqlalchemy.exc import IntegrityError
-from app.wildberries.database_models import Base, TrandsTable, TrandsInfoTable, CategoryTrandsTable, Product
+from app.wildberries.database_models import Base, TrandsTable, TrandsInfoTable, CategoryTrandsTable
 from app.utils.app_logger import get_logger
 
 logger = get_logger(__name__)
@@ -13,7 +13,7 @@ async def init_db(engine: AsyncEngine):
         await conn.run_sync(Base.metadata.create_all)
     logger.info("Database initialized successfully.")
 
-async def save_to_db(trands_data, trands_info_data, category_data, product_data, session_maker):
+async def save_to_db(trands_data, trands_info_data, category_data, session_maker):
     async with session_maker() as session:
         async with session.begin():
             try:
@@ -31,11 +31,6 @@ async def save_to_db(trands_data, trands_info_data, category_data, product_data,
                 if category_data:
                     category_data_ignore = insert(CategoryTrandsTable).values(category_data).prefix_with("IGNORE")
                     await session.execute(category_data_ignore)
-
-                # Сохраняем products
-                if product_data:
-                    product_data_ignore = insert(Product).values(product_data).prefix_with("IGNORE")
-                    await session.execute(product_data_ignore)
 
                 logger.info("All data saved successfully.")
             except IntegrityError as e:
@@ -56,5 +51,3 @@ def validate_foreign_keys(trands_data, trands_info_data, category_data):
         category for category in category_data if category["id_trands"] in trands_ids
     ]
     return trands_info_data, category_data
-
-

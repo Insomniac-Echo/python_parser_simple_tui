@@ -182,3 +182,4 @@ app/yandex/curl_cff.py
 all_data_json.json
 cookies.pkl
 app/yandex/yandex_test_json.py
+app/wildberries/trands.sql

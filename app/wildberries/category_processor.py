@@ -41,7 +41,6 @@ async def process_and_save(session_maker):
             trands_data = []
             trands_info_data = []
             category_data = []
-            product_data = []
 
             async for items in recursive_parse_category(category, base_url, session):
                 for item in items:
@@ -75,35 +74,9 @@ async def process_and_save(session_maker):
                         "parent_id": 0,
                     })
 
-                    product_data.append({
-                        "id_src": item["id_src"],
-                        "name": item["name"],
-                        "cashback": item["cashback"],
-                        "sale": item["sale"],
-                        "brand": item["brand"],
-                        "rating": item["rating"],
-                        "supplier": item["supplier"],
-                        "supplierRating": item["supplierRating"],
-                        "feedbacks": item["feedbacks"],
-                        "reviewRating": item["reviewRating"],
-                        "promoTextCard": item["promoTextCard"],
-                        "basic_price": item["basic_price"],
-                        "product_price": item["product_price"],
-                        "total_price": item["total_price"],
-                        "logistics_price": item["logistics_price"],
-                        "return_price": item["return_price"],
-                        "link": item["link"],
-                        "img_link": item["img_url"],
-                        "description": item["description"],
-                        "category_ru": item["category"]["name_1"],
-                        "category_eng": item["category"]["name_1_eng"],
-                        "category_id": 1,
-                        "parent_id": 0,
-                    })
-
             trands_info_data, category_data = validate_foreign_keys(trands_data, trands_info_data, category_data)
 
             logger.info(f"Saving data for category: {category}")
-            await save_to_db(trands_data, trands_info_data, category_data, product_data, session_maker)
+            await save_to_db(trands_data, trands_info_data, category_data, session_maker)
 
     logger.info("All categories processed and saved.")
