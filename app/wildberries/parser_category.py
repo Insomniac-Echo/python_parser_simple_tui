@@ -26,11 +26,16 @@ async def get_data_say_gex(url: str, session: AsyncSession, max_retries: int = 1
                     logger.info("Success data extraction.")
                     return await get_details_from_json(session, data)
                 else:
-                    raise DataValidationError()
+                    logger.error(f"Data validation failed. Retrying ({retries + 1}/{max_retries})...")
+                    retries += 1
+                    await asyncio.sleep(3)
             except json.JSONDecodeError:
                 logger.error("JSON decode error.")
+                retries += 1
+                await asyncio.sleep(3)
             except DataValidationError:
-                logger.error("Data validation error, restarting in 3 seconds.")
+                logger.error(f"Data validation error. Retrying ({retries + 1}/{max_retries})...")
+                retries += 1
                 await asyncio.sleep(3)
         elif response.status_code == 429:
             # рейт лимит, тяжело
