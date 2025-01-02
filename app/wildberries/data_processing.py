@@ -3,7 +3,7 @@ import json
 from curl_cffi import requests
 from curl_cffi.requests import AsyncSession
 from pydantic import ValidationError
-
+import asyncio
 from app.utils.app_logger import get_logger
 from app.wildberries.utils import remove_emojis, get_basket_number
 from app.models import Product
@@ -36,37 +36,42 @@ async def get_description(session, id, basket_number, name):
         return None
         
 #Функция для получения словаря категорий, требует доработки.
-async def get_category(session, id, brandid, subjectid, kindid):
+async def get_category(session, id, brandid, subjectid, kindid, max_retries=3):
     url = f"https://www.wildberries.ru/webapi/product/{id}/data?subject={subjectid}&kind={kindid}&brand={brandid}"
+    retries = 0
+    while retries < max_retries:
+        try:
+            response = await session.get(url, impersonate="chrome", timeout=55)
+            if response.status_code == 404:
+                logger.warning(f"Category not found for product ID {id}. Status code: {response.status_code}")
+                return None
+            elif response.status_code != 200:
+                logger.error(f"Status code other than 200 or 404. Local or Server error? Status code: {response.status_code}")
+                return None
 
-    try:
-        response = await session.get(url, impersonate="chrome")
-        if response.status_code == 404:
-            logger.warning(f"Category not found for product ID {id}. Status code: {response.status_code}")
-            return None
-        elif response.status_code != 200:
-            logger.error(f"Status code other than 200 or 404. Local or Server error? Status code: {response.status_code}")
-            return None
+            category = response.json()
+            if "value" in category:
+                site_path = category["value"].get("data", {}).get("sitePath", [])
+                parsed_data = {}
+                for i, item in enumerate(site_path[:-1], start=1):
+                    key = f"name_{i}"
+                    key_eng = f"name_{i}_eng"
+                    name = item.get("name")
+                    page_url = item.get("pageUrl")
+                    if name and page_url:
+                        parsed_data[key] = name
+                        parsed_data[key_eng] = page_url.split('/')[-1]
+                return parsed_data
+            else:
+                logger.warning(f"Category not found for product ID {id}.")
+                return None
+        except (requests.exceptions.RequestException, json.JSONDecodeError) as e:
+            retries += 1
+            logger.error(f"Error occurred while fetching category for product ID {id}: {e}. Retrying ({retries}/{max_retries}).")
+            await asyncio.sleep(10)
 
-        category = response.json()
-        if "value" in category:
-            site_path = category["value"].get("data", {}).get("sitePath", [])
-            parsed_data = {}
-            for i, item in enumerate(site_path[:-1], start=1):
-                key = f"name_{i}"
-                key_eng = f"name_{i}_eng"
-                name = item.get("name")
-                page_url = item.get("pageUrl")
-                if name and page_url:
-                    parsed_data[key] = name
-                    parsed_data[key_eng] = page_url.split('/')[-1]
-            return parsed_data
-        else:
-            logger.warning(f"Category not found for product ID {id}.")
-            return None
-    except (requests.exceptions.RequestException, json.JSONDecodeError) as e:
-        logger.error(f"Error occurred while fetching category for product ID {id}: {e}")
-        return None
+    logger.error(f"Max retries reached for product ID {id}.")
+    return None
 
 #Функция для получения ссылки на изображение карточки товара.
 async def get_image_url(session, id, basket_number):
@@ -88,46 +93,65 @@ async def get_details_from_json(session, response):
     logger.info("Formatting data.")
     data_list = []
     for data in response['data']['products']:
-        product_properties = {
-            'id_src': data.get('id'),
-            'name': data.get('name'),
-            'cashback': data.get('feedbackPoints'),
-            'sale': data.get('sale'),
-            'brand': remove_emojis(data.get('brand')),
-            'rating': data.get('rating'),
-            'supplier': data.get('supplier'),
-            'supplierRating': data.get('supplierRating'),
-            'feedbacks': data.get('feedbacks'),
-            'reviewRating': data.get('reviewRating'),
-            'promoTextCard': data.get('promoTextCard'),
-            'basic_price': data.get('sizes', [{}])[0].get('price', {}).get('basic') / 100,
-            'product_price': data.get('sizes', [{}])[0].get('price', {}).get('product') / 100,
-            'total_price': data.get('sizes', [{}])[0].get('price', {}).get('total') / 100,
-            'logistics_price': data.get('sizes', [{}])[0].get('price', {}).get('logistics'),
-            'return_price': data.get('sizes', [{}])[0].get('price', {}).get('return'),
-            'link': f'https://www.wildberries.ru/catalog/{data.get("id")}/detail.aspx?targetUrl=BP',
-            'img_url': await get_image_url(session, data.get('id'), 
-                             get_basket_number(data.get('id'))),
-            'description': await get_description(session, data.get('id'),
-                                 get_basket_number(data.get('id')),
-                                 data.get('name')),
-            'category': await get_category(
+        try:
+            category = await get_category(
                 session,
                 data.get('id'),
                 data.get('brandId'),
                 data.get('subjectId'),
-                data.get('kindId'))
-        }
+                data.get('kindId')
+            )
+            if category is None:
+                logger.warning(f"Failed to fetch category for product ID {data.get('id')}. Proceeding with default category values.")
+                category = {
+                    "name_1": "Unknown Category",
+                    "name_1_eng": "unknown_category"
+                }
 
-        if product_properties['category'] is not None:
-            product_properties['category'].setdefault('name_1', None)
-            product_properties['category'].setdefault('name_1_eng', None)
+            img_url = await get_image_url(session, data.get('id'), get_basket_number(data.get('id')))
+            if img_url is None:
+                logger.warning(f"Failed to fetch image URL for product ID {data.get('id')}. Proceeding without image URL.")
+                img_url = ""
 
-        try:
+            description = await get_description(
+                session,
+                data.get('id'),
+                get_basket_number(data.get('id')),
+                data.get('name')
+            )
+            if description is None:
+                logger.warning(f"Failed to fetch description for product ID {data.get('id')}. Proceeding without description.")
+                description = ""
+
+            product_properties = {
+                'id_src': data.get('id'),
+                'name': data.get('name'),
+                'cashback': data.get('feedbackPoints'),
+                'sale': data.get('sale'),
+                'brand': remove_emojis(data.get('brand')),
+                'rating': data.get('rating'),
+                'supplier': data.get('supplier'),
+                'supplierRating': data.get('supplierRating'),
+                'feedbacks': data.get('feedbacks'),
+                'reviewRating': data.get('reviewRating'),
+                'promoTextCard': data.get('promoTextCard'),
+                'basic_price': data.get('sizes', [{}])[0].get('price', {}).get('basic') / 100,
+                'product_price': data.get('sizes', [{}])[0].get('price', {}).get('product') / 100,
+                'total_price': data.get('sizes', [{}])[0].get('price', {}).get('total') / 100,
+                'logistics_price': data.get('sizes', [{}])[0].get('price', {}).get('logistics'),
+                'return_price': data.get('sizes', [{}])[0].get('price', {}).get('return'),
+                'link': f'https://www.wildberries.ru/catalog/{data.get("id")}/detail.aspx?targetUrl=BP',
+                'img_url': img_url,
+                'description': description,
+                'category': category
+            }
+
             product = Product(**product_properties)
             data_list.append(product.model_dump())
         except ValidationError as e:
             logger.error(f"Validation error for product {data.get('id')}: {e}")
+        except Exception as e:
+            logger.error(f"Unexpected error processing product {data.get('id')}: {e}")
 
     logger.info("Parse Wildberries operation successful. Sending data.")
     return data_list
