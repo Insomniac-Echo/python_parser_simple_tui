@@ -47,7 +47,6 @@ async def process_and_save(session_maker):
             trands_info_data = []
             category_data = []
 
-            #юрлка для каждой категории
             base_url = f"https://catalog.wb.ru/catalog/{pair['shard']}/v2/catalog?ab_testing=false&appType=1&{pair['query']}&curr=rub&dest=-284542&hide_dtype=10&lang=ru&sort=popular&spp=30"
 
             async for items in recursive_parse_category(pair['seo'], base_url, session):
@@ -60,8 +59,8 @@ async def process_and_save(session_maker):
                         "basic_price": item["basic_price"],
                         "product_price": item["product_price"],
                         "total_price": item["total_price"],
-                        "count_sales": 0,
-                        "on_stock": 0,
+                        "count_sales": item["count_sales"],
+                        "on_stock": item["on_stock"],
                     })
                 
                     trands_info_data.append({

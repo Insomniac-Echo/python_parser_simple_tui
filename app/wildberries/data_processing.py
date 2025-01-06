@@ -84,6 +84,49 @@ async def get_image_url(session, id, basket_number):
 
     return img_url
 
+#Функция для получения количества продаж, стороннее апи
+async def get_sales_quantity(session: AsyncSession, product_id: int):
+
+    url = "https://plugin.mpstats.io/pluginapi"
+    cookies = {
+        'carrotquest_device_guid': 'f99d76fe-28bf-4a75-aad6-6cea879ea54e',
+        'carrotquest_uid': '1876814101460552074',
+        'carrotquest_auth_token': 'user.1876814101460552074.57576-5a5343ec7aac68d788dabb2569.379a977697b3a552b96d2e56cb5f4f11d6b918381c16f9ca',
+        'mp_auth': 'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpZCI6ODI0MzAyLCJ2ZXJzaW9uIjoyLCJrZXkiOiJlYTNjNzEyZjVmYzIzZGIxNTY1YjA1YTAwMGFlN2E1ZiIsInZhbGlkYXRlIjoiNTZlYTE2ZTk0MjQyMjQxNDQ0NzA3MDk5YWVlMzY0NDciLCJleHAiOjE3NTEzOTUwNzJ9.el_p9ZiT7MlTJYh9fBoUHGaTRnSPoI_rJAepTbv0lRY',
+    }
+    headers = {
+        'accept': '*/*',
+        'accept-language': 'ru-RU,ru;q=0.9,en-US;q=0.8,en;q=0.7',
+        'content-type': 'application/json',
+        'dnt': '1',
+        'origin': 'chrome-extension://pjbepnginjokklnhdgladnmlghcchbeb',
+        'priority': 'u=1, i',
+        'sec-fetch-dest': 'empty',
+        'sec-fetch-mode': 'cors',
+        'sec-fetch-site': 'none',
+        'user-agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36',
+    }
+    json_data = {
+        'Place': 'wildberries',
+        'wbFBS': True,
+        'PageSku': str(product_id),
+        'Orderscount': 0,
+    }
+
+    try:
+        response = await session.post(url, cookies=cookies, headers=headers, json=json_data, impersonate="chrome")
+        if response.status_code == 200:
+            data = response.json()
+            orders = data.get("items", {}).get(str(product_id), {}).get("Totals", {}).get("orders", 0)
+            return orders
+        else:
+            logger.error(f"Failed to fetch sales quantity for product ID {product_id}. Status code: {response.status_code}")
+            return 0
+    except Exception as e:
+        logger.error(f"Error fetching sales quantity for product ID {product_id}: {e}")
+        return 0
+
+
 #Функция для пост-обработки JSON данных о товарах,
 #возможно, в будущем будет deprecated из-за внедрения pydantic
 #(слияние с основной функцией парсера)
@@ -122,6 +165,10 @@ async def get_details_from_json(session, response):
             if description is None:
                 logger.warning(f"Failed to fetch description for product ID {data.get('id')}. Proceeding without description.")
                 description = ""
+            
+            sales_quantity = await get_sales_quantity(session, data.get('id'))
+
+            on_stock = data.get('totalQuantity', 0)
 
             product_properties = {
                 'id_src': data.get('id'),
@@ -143,9 +190,11 @@ async def get_details_from_json(session, response):
                 'link': f'https://www.wildberries.ru/catalog/{data.get("id")}/detail.aspx?targetUrl=BP',
                 'img_url': img_url,
                 'description': description,
-                'category': category
+                'category': category,
+                'on_stock': on_stock,
+                'count_sales': sales_quantity,
             }
-
+            
             product = Product(**product_properties)
             data_list.append(product.model_dump())
         except ValidationError as e:

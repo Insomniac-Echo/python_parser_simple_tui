@@ -38,7 +38,6 @@ async def get_data_say_gex(url: str, session: AsyncSession, max_retries: int = 1
                 retries += 1
                 await asyncio.sleep(3)
         elif response.status_code == 429:
-            # рейт лимит, тяжело
             if retries < max_retries:
                 logger.warning("Rate limit exceeded. Retrying in 2 seconds.")
                 await asyncio.sleep(2)
