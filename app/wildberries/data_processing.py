@@ -39,9 +39,29 @@ async def get_description(session, id, basket_number, name):
 async def get_category(session, id, brandid, subjectid, kindid, max_retries=3):
     url = f"https://www.wildberries.ru/webapi/product/{id}/data?subject={subjectid}&kind={kindid}&brand={brandid}"
     retries = 0
+
+    headers = {
+    'accept': '*/*',
+    'accept-language': 'ru-RU,ru;q=0.9,en-US;q=0.8,en;q=0.7',
+    'deviceid': 'site_99d04ef106944d24bee830f7f6e65aee',
+    'dnt': '1',
+    'priority': 'u=1, i',
+    'referer': f"https://www.wildberries.ru/catalog/{id}/detail.aspx",
+    'sec-ch-ua': '"Not;A=Brand";v="24", "Chromium";v="128"',
+    'sec-ch-ua-mobile': '?0',
+    'sec-ch-ua-platform': '"Linux"',
+    'sec-fetch-dest': 'empty',
+    'sec-fetch-mode': 'cors',
+    'sec-fetch-site': 'same-origin',
+    'user-agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36',
+    'x-requested-with': 'XMLHttpRequest',
+    'x-spa-version': '11.4.1',
+    }
+
+
     while retries < max_retries:
         try:
-            response = await session.get(url, impersonate="chrome", timeout=55)
+            response = await session.get(url, impersonate="chrome", headers=headers, timeout=55)
             if response.status_code == 404:
                 logger.warning(f"Category not found for product ID {id}. Status code: {response.status_code}")
                 return None
@@ -87,43 +107,39 @@ async def get_image_url(session, id, basket_number):
 #Функция для получения количества продаж, стороннее апи
 async def get_sales_quantity(session: AsyncSession, product_id: int):
 
-    url = "https://plugin.mpstats.io/pluginapi"
-    cookies = {
-        'carrotquest_device_guid': 'f99d76fe-28bf-4a75-aad6-6cea879ea54e',
-        'carrotquest_uid': '1876814101460552074',
-        'carrotquest_auth_token': 'user.1876814101460552074.57576-5a5343ec7aac68d788dabb2569.379a977697b3a552b96d2e56cb5f4f11d6b918381c16f9ca',
-        'mp_auth': 'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpZCI6ODI0MzAyLCJ2ZXJzaW9uIjoyLCJrZXkiOiJlYTNjNzEyZjVmYzIzZGIxNTY1YjA1YTAwMGFlN2E1ZiIsInZhbGlkYXRlIjoiNTZlYTE2ZTk0MjQyMjQxNDQ0NzA3MDk5YWVlMzY0NDciLCJleHAiOjE3NTEzOTUwNzJ9.el_p9ZiT7MlTJYh9fBoUHGaTRnSPoI_rJAepTbv0lRY',
-    }
+    url = f"https://api.likestats.io/extension/product/{product_id}/quantity"
+
     headers = {
-        'accept': '*/*',
-        'accept-language': 'ru-RU,ru;q=0.9,en-US;q=0.8,en;q=0.7',
-        'content-type': 'application/json',
-        'dnt': '1',
-        'origin': 'chrome-extension://pjbepnginjokklnhdgladnmlghcchbeb',
-        'priority': 'u=1, i',
-        'sec-fetch-dest': 'empty',
-        'sec-fetch-mode': 'cors',
-        'sec-fetch-site': 'none',
-        'user-agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36',
-    }
-    json_data = {
-        'Place': 'wildberries',
-        'wbFBS': True,
-        'PageSku': str(product_id),
-        'Orderscount': 0,
+    'Accept': '*/*',
+    'Accept-Language': 'ru-RU,ru;q=0.9,en-US;q=0.8,en;q=0.7',
+    'Connection': 'keep-alive',
+    'DNT': '1',
+    'Origin': 'https://www.wildberries.ru',
+    'Referer': f"https://www.wildberries.ru/catalog/{product_id}/detail.aspx",
+    'Sec-Fetch-Dest': 'empty',
+    'Sec-Fetch-Mode': 'cors',
+    'Sec-Fetch-Site': 'cross-site',
+    'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36',
+    'authorization': 'Bearer OIk0McAqJJTMeLQLNdW71XMiVptVO3nd',
+    'sec-ch-ua': '"Not;A=Brand";v="24", "Chromium";v="128"',
+    'sec-ch-ua-mobile': '?0',
+    'sec-ch-ua-platform': '"Linux"',
     }
 
     try:
-        response = await session.post(url, cookies=cookies, headers=headers, json=json_data, impersonate="chrome")
+        response = await session.get(url, headers=headers)
         if response.status_code == 200:
             data = response.json()
-            orders = data.get("items", {}).get(str(product_id), {}).get("Totals", {}).get("orders", 0)
-            return orders
+
+            sizes_data = data.get("sizes", [])
+
+            total_sales = sum(item.get("sales", 0) for item in sizes_data)
+            return total_sales
         else:
-            logger.error(f"Failed to fetch sales quantity for product ID {product_id}. Status code: {response.status_code}")
+            logger.error(f"Failed to fetch sales data for product ID {product_id}. Status code: {response.status_code}")
             return 0
     except Exception as e:
-        logger.error(f"Error fetching sales quantity for product ID {product_id}: {e}")
+        logger.error(f"Error fetching sales data for product ID {product_id}: {e}")
         return 0
 
 
