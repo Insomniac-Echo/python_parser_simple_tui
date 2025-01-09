@@ -3,6 +3,7 @@ from sqlalchemy import insert
 from sqlalchemy.exc import IntegrityError
 from app.wildberries.database_models import Base, TrandsTable, TrandsInfoTable, CategoryTrandsTable
 from app.utils.app_logger import get_logger
+from datetime import datetime
 
 logger = get_logger(__name__)
 
@@ -17,6 +18,10 @@ async def save_to_db(trands_data, trands_info_data, category_data, session_maker
     async with session_maker() as session:
         async with session.begin():
             try:
+                # Сохраняем время
+                current_timestamp = datetime.now()
+                for trand in trands_data:
+                    trand["date_of"] = current_timestamp
                 # Сохраняем trands
                 if trands_data:
                     trands_data_ignore = insert(TrandsTable).values(trands_data).prefix_with("IGNORE")
