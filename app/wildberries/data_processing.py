@@ -118,7 +118,7 @@ async def get_sales_quantity(session: AsyncSession, product_id: int):
     'Referer': f"https://www.wildberries.ru/catalog/{product_id}/detail.aspx",
     'Sec-Fetch-Dest': 'empty',
     'Sec-Fetch-Mode': 'cors',
-    'Sec-Fetch-Site': 'cross-site',
+    'Sec-Fetch-Site': 'cross-site', 
     'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36',
     'authorization': 'Bearer OIk0McAqJJTMeLQLNdW71XMiVptVO3nd',
     'sec-ch-ua': '"Not;A=Brand";v="24", "Chromium";v="128"',

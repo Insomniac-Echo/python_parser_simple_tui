@@ -59,17 +59,21 @@ async def parse_shard_and_query(session: AsyncSession):
         if response.status_code == 200:
             data = response.json()
             shard_query_seo = []
+            parsed_categories = set()  #храним уникальные ключи
 
             def extract_items(items):
                 for item in items:
                     if "shard" in item and "query" in item:
-                        shard_query_seo.append({
-                            "shard": item["shard"],
-                            "query": item["query"],
-                            "seo": item.get("seo", "")
-                        })
+                        category_key = (item["shard"], item["query"])  #уникальный ключ для каждой категории
+                        if category_key not in parsed_categories:  #проверяем парсили ли мы это уже или нет
+                            shard_query_seo.append({
+                                "shard": item["shard"],
+                                "query": item["query"],
+                                "seo": item.get("seo", "")
+                            })
+                            parsed_categories.add(category_key)
                     if "childs" in item:
-                        extract_items(item["childs"])  # рекурсивно проходим childs
+                        extract_items(item["childs"]) #рекурсивно проходим childs
 
             extract_items(data)
             return shard_query_seo
