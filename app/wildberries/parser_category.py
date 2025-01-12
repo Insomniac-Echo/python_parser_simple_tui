@@ -63,23 +63,35 @@ async def parse_shard_and_query(session: AsyncSession):
 
             def extract_items(items):
                 for item in items:
-                    if "shard" in item and "query" in item:
-                        category_key = (item["shard"], item["query"])  #уникальный ключ для каждой категории
+                    if "shard" in item and "query" in item and "name" in item:
+                        category_key = (item["shard"], item["query"], item["name"])  #уникальный ключ для каждой категории
                         if category_key not in parsed_categories:  #проверяем парсили ли мы это уже или нет
                             shard_query_seo.append({
                                 "shard": item["shard"],
                                 "query": item["query"],
-                                "seo": item.get("seo", "")
+                                "name": item.get("name", "")
                             })
                             parsed_categories.add(category_key)
+
+                            logger.debug(f"Extracted category: {item['name']} (shard: {item['shard']}, query: {item['query']})")
+                        else:
+                            logger.debug(f"Skipping duplicate category: {item['name']} (shard: {item['shard']}, query: {item['query']})")
+                    else:
+                        logger.warning(f"Missing required fields in item: {item}")
+
                     if "childs" in item:
-                        extract_items(item["childs"]) #рекурсивно проходим childs
+                        logger.debug(f"Processing child categories for: {item.get('name', 'Unnamed Category')}")
+                        extract_items(item["childs"])
 
             extract_items(data)
+            logger.info(f"Successfully extracted {len(shard_query_seo)} unique shard and query pairs.")
             return shard_query_seo
         else:
             logger.error(f"Failed to fetch data from {url}. Status code: {response.status_code}")
             return None
+    except json.JSONDecodeError as e:
+        logger.error(f"JSON decode error while parsing response: {e}")
+        return None
     except Exception as e:
-        logger.error(f"Error parsing shard and query: {e}")
+        logger.error(f"Unexpected error while parsing shard and query: {e}")
         return None

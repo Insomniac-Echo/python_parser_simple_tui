@@ -49,7 +49,7 @@ async def process_and_save(session_maker):
 
             base_url = f"https://catalog.wb.ru/catalog/{pair['shard']}/v2/catalog?ab_testing=false&appType=1&{pair['query']}&curr=rub&dest=-284542&hide_dtype=10&lang=ru&sort=popular&spp=30"
 
-            async for items in recursive_parse_category(pair['seo'], base_url, session):
+            async for items in recursive_parse_category(pair['name'], base_url, session):
                 for item in items:
                     trands_data.append({
                         "id_src": item["id_src"],
