@@ -53,6 +53,7 @@ async def process_and_save(session_maker):
                 for item in items:
                     trands_data.append({
                         "id_src": item["id_src"],
+                        "name": item["name"],
                         "rating": item["rating"],
                         "reviewRating": item["reviewRating"],
                         "feedbacks": item["feedbacks"],
@@ -81,7 +82,7 @@ async def process_and_save(session_maker):
                         "category_eng": item["category"]["name_1_eng"],
                         "category_sub": item["category"]["name_2"],
                         "category_sub_sub": item["category"]["name_3"],
-                        "parent_id": 0,
+                    #    "parent_id": 0,
                     })
 
             trands_info_data, category_data = validate_foreign_keys(trands_data, trands_info_data, category_data)

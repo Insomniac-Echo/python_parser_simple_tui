@@ -18,20 +18,21 @@ class TrandsTable(Base):
     count_sales = Column(Integer)
     on_stock = Column(Integer)
     link = Column(Text)
+    img_link = Column(Text)
     date_of = Column(TIMESTAMP)
 
 # Таблица trands_info
-class TrandsInfoTable(Base):
-    __tablename__ = 'trands_info'
-    id_info = Column(Integer, primary_key=True, autoincrement=True)
-    id_trands = Column(Integer, ForeignKey('trands.id_src'))
-    name = Column(String(500))
-    brand = Column(String(500))
-    cashback = Column(String(5))
-    sale = Column(String(5))
-    link = Column(Text)
-    img_link = Column(Text)
-    __table_args__ = (Index('name', 'name'),)
+#class TrandsInfoTable(Base):
+#    __tablename__ = 'trands_info'
+#   id_info = Column(Integer, primary_key=True, autoincrement=True)
+#   id_trands = Column(Integer, ForeignKey('trands.id_src'))
+#    name = Column(String(500))
+#    brand = Column(String(500))
+#    cashback = Column(String(5))
+#    sale = Column(String(5))
+#    link = Column(Text)
+#    img_link = Column(Text)
+#    __table_args__ = (Index('name', 'name'),)
 
 # Таблица category_trands
 class CategoryTrandsTable(Base):
@@ -40,6 +41,6 @@ class CategoryTrandsTable(Base):
     id_trands = Column(Integer, ForeignKey('trands.id_src'))
     category_ru = Column(String(500))
     category_eng = Column(String(500), index=True)
-    category_id = Column(Integer)
-    parent_id = Column(Integer)
+    category_sub = Column(String(500)),
+    category_sub_sub = Column(String(500)),
     __table_args__ = (Index('id_trands', 'id_trands'), Index('category_eng', 'category_eng'),)

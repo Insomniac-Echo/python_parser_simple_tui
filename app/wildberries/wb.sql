@@ -10,6 +10,8 @@ CREATE TABLE trands (
     total_price INT,
     count_sales INT,
     on_stock INT,
+    link TEXT,
+    img_link TEXT,
     date_of TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
