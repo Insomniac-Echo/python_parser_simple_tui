@@ -34,8 +34,8 @@ CREATE TABLE category_trands (
     id_trands INT NOT NULL, -- Foreign key to trands.id_src
     category_ru VARCHAR(500),
     category_eng VARCHAR(500),
-    category_id INT,
-    parent_id INT,
+    category_sub VARCHAR(500),
+    category_sub_sub VARCHAR(500),
     FOREIGN KEY (id_trands) REFERENCES trands(id_src) ON DELETE CASCADE
 );
 
