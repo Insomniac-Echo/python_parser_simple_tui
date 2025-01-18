@@ -1,7 +1,7 @@
 from sqlalchemy.ext.asyncio import AsyncEngine
 from sqlalchemy import insert
 from sqlalchemy.exc import IntegrityError
-from app.wildberries.database_models import Base, TrandsTable, TrandsInfoTable, CategoryTrandsTable
+from app.wildberries.database_models import Base, TrandsTable, CategoryTrandsTable
 from app.utils.app_logger import get_logger
 from datetime import datetime
 
@@ -28,9 +28,9 @@ async def save_to_db(trands_data, trands_info_data, category_data, session_maker
                     await session.execute(trands_data_ignore)
 
                 # Сохраняем trands_info
-                if trands_info_data:
-                    trands_info_data_ignore = insert(TrandsInfoTable).values(trands_info_data).prefix_with("IGNORE")
-                    await session.execute(trands_info_data_ignore)
+                #if trands_info_data:
+                #    trands_info_data_ignore = insert(TrandsInfoTable).values(trands_info_data).prefix_with("IGNORE")
+                #    await session.execute(trands_info_data_ignore)
 
                 # Сохраняем category_trands
                 if category_data:

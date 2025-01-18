@@ -1,7 +1,7 @@
 from app.wildberries.parser_category import get_data_say_gex, parse_shard_and_query
 from app.wildberries.database import save_to_db, validate_foreign_keys
 from app.utils.app_logger import get_logger
-from app.wildberries.dictionary import category_links
+#from app.wildberries.dictionary import category_links
 from curl_cffi import requests
 
 logger = get_logger(__name__)
@@ -61,23 +61,26 @@ async def process_and_save(session_maker):
                         "total_price": item["total_price"],
                         "count_sales": item["count_sales"],
                         "on_stock": item["on_stock"],
-                    })
-                
-                    trands_info_data.append({
-                        "id_trands": item["id_src"],
-                        "name": item["name"],
-                        "brand": item["brand"],
-                        "cashback": item["cashback"],
-                        "sale": item["sale"],
                         "link": item["link"],
                         "img_link": item["img_url"],
                     })
+                
+                    #trands_info_data.append({
+                    #    "id_trands": item["id_src"],
+                    #    "name": item["name"],
+                    #    "brand": item["brand"],
+                    #    "cashback": item["cashback"],
+                    #    "sale": item["sale"],
+                    #    "link": item["link"],
+                    #    "img_link": item["img_url"],
+                    #})
 
                     category_data.append({
                         "id_trands": item["id_src"],
                         "category_ru": item["category"]["name_1"],
                         "category_eng": item["category"]["name_1_eng"],
-                        "category_id": 1,
+                        "category_sub": item["category"]["name_2"],
+                        "category_sub_sub": item["category"]["name_3"],
                         "parent_id": 0,
                     })
 
