@@ -137,10 +137,12 @@ async def get_sales_quantity(session: AsyncSession, product_id: int):
             return total_sales
         else:
             logger.error(f"Failed to fetch sales data for product ID {product_id}. Status code: {response.status_code}")
-            return 0
+            total_sales = 0
+            return total_sales
     except Exception as e:
         logger.error(f"Error fetching sales data for product ID {product_id}: {e}")
-        return 0
+        total_sales = 0
+        return total_sales
 
 
 #Функция для пост-обработки JSON данных о товарах,
