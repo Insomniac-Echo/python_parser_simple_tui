@@ -115,16 +115,16 @@ async def get_sales_quantity(session: AsyncSession, product_id: int):
     'Connection': 'keep-alive',
     'DNT': '1',
     'Origin': 'https://www.wildberries.ru',
-    'Referer': f"https://www.wildberries.ru/catalog/{product_id}/detail.aspx",
+    'Referer': f'https://www.wildberries.ru/catalog/{product_id}/detail.aspx',
     'Sec-Fetch-Dest': 'empty',
     'Sec-Fetch-Mode': 'cors',
-    'Sec-Fetch-Site': 'cross-site', 
+    'Sec-Fetch-Site': 'cross-site',
     'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36',
-    'authorization': 'Bearer replace_token',
+    'authorization': 'Bearer -replace_token',
     'sec-ch-ua': '"Not;A=Brand";v="24", "Chromium";v="128"',
     'sec-ch-ua-mobile': '?0',
     'sec-ch-ua-platform': '"Linux"',
-    }
+}
 
     try:
         response = await session.get(url, headers=headers)
@@ -166,8 +166,15 @@ async def get_details_from_json(session, response):
                 logger.warning(f"Failed to fetch category for product ID {data.get('id')}. Proceeding with default category values.")
                 category = {
                     "name_1": "Unknown Category",
-                    "name_1_eng": "unknown_category"
+                    "name_1_eng": "unknown_category",
+                    "name_2": "Unknown Subcategory",
+                    "name_3": "Unknown Sub-Subcategory"
                 }
+            else:
+                category.setdefault("name_1", "Unknown Category")
+                category.setdefault("name_1_eng", "unknown_category")
+                category.setdefault("name_2", "Unknown Subcategory")
+                category.setdefault("name_3", "Unknown Sub-Subcategory")
 
             img_url = await get_image_url(session, data.get('id'), get_basket_number(data.get('id')))
             if img_url is None:
