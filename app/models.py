@@ -27,24 +27,18 @@ class Product(BaseModel):
     count_sales: Optional[int] = None
 
 class TrandsTable(BaseModel):
-    id_src: Optional[int]
-    rating: Optional[float]
-    reviewRating: Optional[float]
-    feedbacks: Optional[int]
-    basic_price: Optional[int]
-    product_price: Optional[int]
-    total_price: Optional[int]
-    count_sales: Optional[int]
-    on_stock: Optional[int]
-
-class TrandsInfoTable(BaseModel):
-    id_trands: int
-    name: Optional[str]
-    brand: Optional[str]
-    cashback: Optional[str]
-    sale: Optional[str]
-    link: Optional[str]
-    img_link: Optional[str]
+    id_src: int
+    name: str
+    rating: Optional[float] = None
+    reviewRating: Optional[float] = None
+    feedbacks: Optional[int] = None
+    basic_price: Optional[int] = None
+    product_price: Optional[int] = None
+    total_price: Optional[int] = None
+    count_sales: Optional[int] = None
+    on_stock: Optional[int] = None
+    link: Optional[str] = None
+    img_link: Optional[str] = None
 
 class CategoryTrandsTable(BaseModel):
     id_trands: int

@@ -120,7 +120,7 @@ async def get_sales_quantity(session: AsyncSession, product_id: int):
     'Sec-Fetch-Mode': 'cors',
     'Sec-Fetch-Site': 'cross-site', 
     'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36',
-    'authorization': 'Bearer replace_token',
+    'authorization': 'Bearer -replace_token',
     'sec-ch-ua': '"Not;A=Brand";v="24", "Chromium";v="128"',
     'sec-ch-ua-mobile': '?0',
     'sec-ch-ua-platform': '"Linux"',
