@@ -21,7 +21,7 @@ class Product(BaseModel):
     return_price: int
     link: str
     img_url: Optional[str] = None
-    description: Optional[str] = None
+    # description: Optional[str] = None
     category: Optional[dict] = None
     on_stock: Optional[int] = None 
     count_sales: Optional[int] = None

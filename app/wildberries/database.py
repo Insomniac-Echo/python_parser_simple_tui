@@ -30,8 +30,8 @@ async def save_to_db(trands_data, category_data, session_maker):
 
                 # Сохраняем category_trands
                 if category_data:
-                    category_ignore = insert(CategoryTrandsTable).values(category_data).prefix_with("IGNORE")
-                    await session.execute(category_ignore)
+                    category_data_ignore = insert(CategoryTrandsTable).values(category_data).prefix_with("IGNORE")
+                    await session.execute(category_data_ignore)
 
                 logger.info("All data saved successfully.")
             except IntegrityError as e:

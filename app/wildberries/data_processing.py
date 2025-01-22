@@ -11,29 +11,29 @@ from app.models import Product
 logger = get_logger(__name__)
 
 #Функция для получения данные в поле description товара.
-async def get_description(session, id, basket_number, name):
-    if basket_number in ["01"]:
-        url = f"https://basket-{basket_number}.wbbasket.ru/vol{str(id)[:2]}/part{str(id)[:4]}/{str(id)}/info/ru/card.json"
-    elif basket_number in ["02", "03", "04", "05"]:
-        url = f"https://basket-{basket_number}.wbbasket.ru/vol{str(id)[:3]}/part{str(id)[:5]}/{str(id)}/info/ru/card.json"
-    else:
-        url = f"https://basket-{basket_number}.wbbasket.ru/vol{str(id)[:4]}/part{str(id)[:6]}/{str(id)}/info/ru/card.json"
+# async def get_description(session, id, basket_number, name):
+#     if basket_number in ["01"]:
+#         url = f"https://basket-{basket_number}.wbbasket.ru/vol{str(id)[:2]}/part{str(id)[:4]}/{str(id)}/info/ru/card.json"
+#     elif basket_number in ["02", "03", "04", "05"]:
+#         url = f"https://basket-{basket_number}.wbbasket.ru/vol{str(id)[:3]}/part{str(id)[:5]}/{str(id)}/info/ru/card.json"
+#     else:
+#         url = f"https://basket-{basket_number}.wbbasket.ru/vol{str(id)[:4]}/part{str(id)[:6]}/{str(id)}/info/ru/card.json"
 
-    try:
-        response = await session.get(url, impersonate="chrome")
-        if response.status_code != 200:
-            logger.error(f"Status code other than 200. Local or Server error? Status code: {response.status_code}")
-            return None
+#     try:
+#         response = await session.get(url, impersonate="chrome")
+#         if response.status_code != 200:
+#             logger.error(f"Status code other than 200. Local or Server error? Status code: {response.status_code}")
+#             return None
 
-        desc = response.json()   
-        if "description" in desc:
-            return desc["description"]
-        else:
-            logger.warning(f"Description not found for {name}")
-            return None
-    except (requests.exceptions.RequestException, json.JSONDecodeError) as e:
-        logger.error(f"Error occurred: {e}")
-        return None
+#         desc = response.json()   
+#         if "description" in desc:
+#             return desc["description"]
+#         else:
+#             logger.warning(f"Description not found for {name}")
+#             return None
+#     except (requests.exceptions.RequestException, json.JSONDecodeError) as e:
+#         logger.error(f"Error occurred: {e}")
+#         return None
         
 #Функция для получения словаря категорий, требует доработки.
 async def get_category(session, id, brandid, subjectid, kindid, max_retries=3):
@@ -172,15 +172,15 @@ async def get_details_from_json(session, response):
                 logger.warning(f"Failed to fetch image URL for product ID {data.get('id')}. Proceeding without image URL.")
                 img_url = ""
 
-            description = await get_description(
-                session,
-                data.get('id'),
-                get_basket_number(data.get('id')),
-                data.get('name')
-            )
-            if description is None:
-                logger.warning(f"Failed to fetch description for product ID {data.get('id')}. Proceeding without description.")
-                description = ""
+            # description = await get_description(
+            #     session,
+            #     data.get('id'),
+            #     get_basket_number(data.get('id')),
+            #     data.get('name')
+            # )
+            # if description is None:
+            #     logger.warning(f"Failed to fetch description for product ID {data.get('id')}. Proceeding without description.")
+            #     description = ""
             
             sales_quantity = await get_sales_quantity(session, data.get('id'))
 
@@ -205,7 +205,7 @@ async def get_details_from_json(session, response):
                 'return_price': data.get('sizes', [{}])[0].get('price', {}).get('return'),
                 'link': f'https://www.wildberries.ru/catalog/{data.get("id")}/detail.aspx?targetUrl=BP',
                 'img_url': img_url,
-                'description': description,
+                # 'description': description,
                 'category': category,
                 'on_stock': on_stock,
                 'count_sales': sales_quantity,
