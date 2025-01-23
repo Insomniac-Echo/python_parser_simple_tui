@@ -24,3 +24,4 @@ def get_logger(name):
     return logger
 
 logging.getLogger('passlib').setLevel(logging.ERROR)
+logging.getLogger('sqlalchemy').setLevel(logging.ERROR)
