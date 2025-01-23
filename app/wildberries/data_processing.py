@@ -39,25 +39,23 @@ logger = get_logger(__name__)
 async def get_category(session, id, brandid, subjectid, kindid, max_retries=3):
     url = f"https://www.wildberries.ru/webapi/product/{id}/data?subject={subjectid}&kind={kindid}&brand={brandid}"
     retries = 0
-
     headers = {
-    'accept': '*/*',
-    'accept-language': 'ru-RU,ru;q=0.9,en-US;q=0.8,en;q=0.7',
-    'deviceid': 'site_99d04ef106944d24bee830f7f6e65aee',
-    'dnt': '1',
-    'priority': 'u=1, i',
-    'referer': f"https://www.wildberries.ru/catalog/{id}/detail.aspx",
-    'sec-ch-ua': '"Not;A=Brand";v="24", "Chromium";v="128"',
-    'sec-ch-ua-mobile': '?0',
-    'sec-ch-ua-platform': '"Linux"',
-    'sec-fetch-dest': 'empty',
-    'sec-fetch-mode': 'cors',
-    'sec-fetch-site': 'same-origin',
-    'user-agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36',
-    'x-requested-with': 'XMLHttpRequest',
-    'x-spa-version': '11.4.1',
+        'accept': '*/*',
+        'accept-language': 'ru-RU,ru;q=0.9,en-US;q=0.8,en;q=0.7',
+        'deviceid': 'site_99d04ef106944d24bee830f7f6e65aee',
+        'dnt': '1',
+        'priority': 'u=1, i',
+        'referer': f"https://www.wildberries.ru/catalog/{id}/detail.aspx",
+        'sec-ch-ua': '"Not;A=Brand";v="24", "Chromium";v="128"',
+        'sec-ch-ua-mobile': '?0',
+        'sec-ch-ua-platform': '"Linux"',
+        'sec-fetch-dest': 'empty',
+        'sec-fetch-mode': 'cors',
+        'sec-fetch-site': 'same-origin',
+        'user-agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36',
+        'x-requested-with': 'XMLHttpRequest',
+        'x-spa-version': '11.4.1',
     }
-
 
     while retries < max_retries:
         try:
@@ -70,6 +68,7 @@ async def get_category(session, id, brandid, subjectid, kindid, max_retries=3):
                 return None
 
             category = response.json()
+
             if "value" in category:
                 site_path = category["value"].get("data", {}).get("sitePath", [])
                 parsed_data = {}
@@ -203,7 +202,6 @@ async def get_sales_quantity(session: AsyncSession, product_id: int):
         logger.error(f"Error fetching sales data for product ID {product_id}: {e}")
         return 0
 
-
 #Функция для пост-обработки JSON данных о товарах,
 #возможно, в будущем будет deprecated из-за внедрения pydantic
 #(слияние с основной функцией парсера)
@@ -214,35 +212,11 @@ async def get_details_from_json(session, response):
     data_list = []
     for data in response['data']['products']:
         try:
-            """ category = await get_category(
-                session,
-                data.get('id'),
-                data.get('brandId'),
-                data.get('subjectId'),
-                data.get('kindId')
-            )
-            if category is None:
-                logger.warning(f"Failed to fetch category for product ID {data.get('id')}. Proceeding with default category values.")
-                category = {
-                    "name_1": "Unknown Category",
-                    "name_1_eng": "unknown_category"
-                } """
-
             img_url = await get_image_url(session, data.get('id'), get_basket_number(data.get('id')))
             if img_url is None:
                 logger.warning(f"Failed to fetch image URL for product ID {data.get('id')}. Proceeding without image URL.")
                 img_url = ""
 
-            # description = await get_description(
-            #     session,
-            #     data.get('id'),
-            #     get_basket_number(data.get('id')),
-            #     data.get('name')
-            # )
-            # if description is None:
-            #     logger.warning(f"Failed to fetch description for product ID {data.get('id')}. Proceeding without description.")
-            #     description = ""
-            
             sales_quantity = await get_sales_quantity(session, data.get('id'))
 
             on_stock = data.get('totalQuantity', 0)
@@ -266,14 +240,15 @@ async def get_details_from_json(session, response):
                 'return_price': data.get('sizes', [{}])[0].get('price', {}).get('return'),
                 'link': f'https://www.wildberries.ru/catalog/{data.get("id")}/detail.aspx?targetUrl=BP',
                 'img_url': img_url,
-                # 'description': description,
-                # 'category': category,
+                'subjectId': data.get('subjectId'),
+                'kindId': data.get('kindId'),
+                'brandId': data.get('brandId'), 
                 'on_stock': on_stock,
                 'count_sales': sales_quantity,
             }
-            
             product = Product(**product_properties)
             data_list.append(product.model_dump())
+
         except ValidationError as e:
             logger.error(f"Validation error for product {data.get('id')}: {e}")
         except Exception as e:

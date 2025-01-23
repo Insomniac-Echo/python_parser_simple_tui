@@ -56,7 +56,7 @@ async def process_and_save(session_maker):
                 if pair['query'] not in category_cache:
                     logger.info(f"Fetching category data for category: {pair['name']}")
                     if items:
-                        first_item = items[0]
+                        first_item = items[10]
                         subject_id = first_item.get("subjectId")
                         kind_id = first_item.get("kindId")
                         brand_id = first_item.get("brandId")
@@ -68,6 +68,7 @@ async def process_and_save(session_maker):
                             subject_id,
                             kind_id
                         )
+                        
                         if category:
                             category_cache[pair['query']] = category # кэшируем данные
                         else:
