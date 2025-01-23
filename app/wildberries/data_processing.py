@@ -214,7 +214,7 @@ async def get_details_from_json(session, response):
     data_list = []
     for data in response['data']['products']:
         try:
-            category = await get_category(
+            """ category = await get_category(
                 session,
                 data.get('id'),
                 data.get('brandId'),
@@ -226,7 +226,7 @@ async def get_details_from_json(session, response):
                 category = {
                     "name_1": "Unknown Category",
                     "name_1_eng": "unknown_category"
-                }
+                } """
 
             img_url = await get_image_url(session, data.get('id'), get_basket_number(data.get('id')))
             if img_url is None:
@@ -267,7 +267,7 @@ async def get_details_from_json(session, response):
                 'link': f'https://www.wildberries.ru/catalog/{data.get("id")}/detail.aspx?targetUrl=BP',
                 'img_url': img_url,
                 # 'description': description,
-                'category': category,
+                'category': "category",
                 'on_stock': on_stock,
                 'count_sales': sales_quantity,
             }
