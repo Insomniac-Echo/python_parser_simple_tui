@@ -93,6 +93,67 @@ async def get_category(session, id, brandid, subjectid, kindid, max_retries=3):
     logger.error(f"Max retries reached for product ID {id}.")
     return None
 
+
+async def get_category_dict(id, brandid, subjectid, kindid, max_retries=3):
+    async with requests.AsyncSession() as session:
+        
+        url = f"https://www.wildberries.ru/webapi/product/{id}/data?subject={subjectid}&kind={kindid}&brand={brandid}"
+        retries = 0
+
+        headers = {
+        'accept': '*/*',
+        'accept-language': 'ru-RU,ru;q=0.9,en-US;q=0.8,en;q=0.7',
+        'deviceid': 'site_99d04ef106944d24bee830f7f6e65aee',
+        'dnt': '1',
+        'priority': 'u=1, i',
+        'referer': f"https://www.wildberries.ru/catalog/{id}/detail.aspx",
+        'sec-ch-ua': '"Not;A=Brand";v="24", "Chromium";v="128"',
+        'sec-ch-ua-mobile': '?0',
+        'sec-ch-ua-platform': '"Linux"',
+        'sec-fetch-dest': 'empty',
+        'sec-fetch-mode': 'cors',
+        'sec-fetch-site': 'same-origin',
+        'user-agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36',
+        'x-requested-with': 'XMLHttpRequest',
+        'x-spa-version': '11.4.1',
+        }
+
+
+        while retries < max_retries:
+            try:
+                response = await session.get(url, impersonate="chrome", headers=headers, timeout=55)
+                if response.status_code == 404:
+                    logger.warning(f"Category not found for product ID {id}. Status code: {response.status_code}")
+                    return None
+                elif response.status_code != 200:
+                    logger.error(f"Status code other than 200 or 404. Local or Server error? Status code: {response.status_code}")
+                    return None
+
+                category = response.json()
+                if "value" in category:
+                    site_path = category["value"].get("data", {}).get("sitePath", [])
+                    parsed_data = {}
+                    for i, item in enumerate(site_path[:-1], start=1):
+                        key = f"name_{i}"
+                        key_eng = f"name_{i}_eng"
+                        name = item.get("name")
+                        page_url = item.get("pageUrl")
+                        if name and page_url:
+                            parsed_data[key] = name
+                            parsed_data[key_eng] = page_url.split('/')[-1]
+                    return parsed_data
+                else:
+                    logger.warning(f"Category not found for product ID {id}.")
+                    return None
+            except (requests.exceptions.RequestException, json.JSONDecodeError) as e:
+                retries += 1
+                logger.error(f"Error occurred while fetching category for product ID {id}: {e}. Retrying ({retries}/{max_retries}).")
+                await asyncio.sleep(10)
+
+        logger.error(f"Max retries reached for product ID {id}.")
+        return None
+
+
 #Функция для получения ссылки на изображение карточки товара.
 async def get_image_url(session, id, basket_number):
     if basket_number in ["01"]:
