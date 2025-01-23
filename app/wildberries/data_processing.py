@@ -267,7 +267,7 @@ async def get_details_from_json(session, response):
                 'link': f'https://www.wildberries.ru/catalog/{data.get("id")}/detail.aspx?targetUrl=BP',
                 'img_url': img_url,
                 # 'description': description,
-                'category': "category",
+                # 'category': category,
                 'on_stock': on_stock,
                 'count_sales': sales_quantity,
             }
