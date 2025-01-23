@@ -106,23 +106,23 @@ async def process_and_save(session_maker):
                         podcats_eng = [category.get(f"name_{level}_eng", "") for level in range(2, 7)]
                         logger.info(f"podcats_eng: {podcats_eng}")
 
-                    category_row = {
-                        "id_trands": item["id_src"],
-                        "category_ru": category_ru,
-                        "category_eng": category_eng,
-                        "podcat_1_ru": podcats_ru[0] if len(podcats_ru) > 0 else None,
-                        "podcat_1_eng": podcats_eng[0] if len(podcats_eng) > 0 else None,
-                        "podcat_2_ru": podcats_ru[1] if len(podcats_ru) > 1 else None,
-                        "podcat_2_eng": podcats_eng[1] if len(podcats_eng) > 1 else None,
-                        "podcat_3_ru": podcats_ru[2] if len(podcats_ru) > 2 else None,
-                        "podcat_3_eng": podcats_eng[2] if len(podcats_eng) > 2 else None,
-                        "podcat_4_ru": podcats_ru[3] if len(podcats_ru) > 3 else None,
-                        "podcat_4_eng": podcats_eng[3] if len(podcats_eng) > 3 else None,
-                        "podcat_5_ru": podcats_ru[4] if len(podcats_ru) > 4 else None,
-                        "podcat_5_eng": podcats_eng[4] if len(podcats_eng) > 4 else None,
-                    }
-                    logger.info(f"category_row: {category_row}")
-                    category_data.append(category_row)
+                        category_row = {
+                            "id_trands": item["id_src"],
+                            "category_ru": category_ru,
+                            "category_eng": category_eng,
+                            "podcat_1_ru": podcats_ru[0] if len(podcats_ru) > 0 else None,
+                            "podcat_1_eng": podcats_eng[0] if len(podcats_eng) > 0 else None,
+                            "podcat_2_ru": podcats_ru[1] if len(podcats_ru) > 1 else None,
+                            "podcat_2_eng": podcats_eng[1] if len(podcats_eng) > 1 else None,
+                            "podcat_3_ru": podcats_ru[2] if len(podcats_ru) > 2 else None,
+                            "podcat_3_eng": podcats_eng[2] if len(podcats_eng) > 2 else None,
+                            "podcat_4_ru": podcats_ru[3] if len(podcats_ru) > 3 else None,
+                            "podcat_4_eng": podcats_eng[3] if len(podcats_eng) > 3 else None,
+                            "podcat_5_ru": podcats_ru[4] if len(podcats_ru) > 4 else None,
+                            "podcat_5_eng": podcats_eng[4] if len(podcats_eng) > 4 else None,
+                        }
+                        logger.info(f"category_row: {category_row}")
+                        category_data.append(category_row)
 
             logger.info(f"Saving data for shard: {pair['shard']}")
             await save_to_db(trands_data, category_data, session_maker)
