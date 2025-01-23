@@ -97,9 +97,13 @@ async def process_and_save(session_maker):
 
                     if category:
                         category_ru = category.get("name_1", "")
+                        logger.info(f"category_ru: {category_ru}")
                         category_eng = category.get("name_1_eng", "")
+                        logger.info(f"category_eng: {category_eng}")
                         podcats_ru = [category.get(f"name_{level}", "") for level in range(2, 7)] #от 2 до 7 потому что 1 это основная категория,остальное подкатегории
+                        logger.info(f"podcats_ru: {podcats_ru}")
                         podcats_eng = [category.get(f"name_{level}_eng", "") for level in range(2, 7)]
+                        logger.info(f"podcats_eng: {podcats_eng}")
 
                         category_row = {
                             "id_trands": item["id_src"],
@@ -116,7 +120,7 @@ async def process_and_save(session_maker):
                             "podcat_5_ru": podcats_ru[4] if len(podcats_ru) > 4 else None,
                             "podcat_5_eng": podcats_eng[4] if len(podcats_eng) > 4 else None,
                         }
-
+                        logger.info(f"category_row: {category_row}")
                         category_data.append(category_row)
 
             logger.info(f"Saving data for shard: {pair['shard']}")
