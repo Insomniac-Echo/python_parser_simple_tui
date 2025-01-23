@@ -3,7 +3,7 @@ from app.wildberries.database import save_to_db, validate_foreign_keys
 from app.utils.app_logger import get_logger
 from app.wildberries.dictionary import category_links
 from curl_cffi import requests
-from app.wildberries.data_processing import get_category
+from app.wildberries.data_processing import get_category, get_category_dict
 
 logger = get_logger(__name__)
 
@@ -154,7 +154,7 @@ async def process_and_save_dict(session_maker):
             kind_id = first_item.get("kindId")
             brand_id = first_item.get("brandId")
 
-            category = await get_category(
+            category = await get_category_dict(
                 session,
                 first_item["id_src"],
                 brand_id,
