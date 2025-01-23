@@ -52,6 +52,30 @@ async def get_data_say_gex(url: str, session: AsyncSession, max_retries: int = 1
     logger.error("Max retries reached. Exiting.")
     return None
 
+
+async def get_data_dict(url: str):    
+    async with AsyncSession() as session:
+        while True:    
+            response = await session.get(url, impersonate="chrome")     
+            if response.status_code == 200:
+                try:
+                    text = response.text
+                    data = json.loads(text)
+                    verify = await data_validation(data)
+                    if verify is not None:
+                        logger.info("Success data extraction.")
+                        return await get_details_from_json(session, data)  
+                    else:
+                        raise DataValidationError()  
+                except json.JSONDecodeError:
+                    logger.error("JSON decode error.")
+                except DataValidationError:
+                    logger.error("Data validation error, restart in 3 seconds.")
+                    await asyncio.sleep(3)
+            else:
+                logger.error(f"Request error, status code is {response.status_code}")
+
+
 async def parse_shard_and_query(session: AsyncSession):
     url = "https://static-basket-01.wb.ru/vol0/data/main-menu-ru-ru-v2.json"
     try:

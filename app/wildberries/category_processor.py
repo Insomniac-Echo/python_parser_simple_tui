@@ -1,4 +1,4 @@
-from app.wildberries.parser_category import get_data_say_gex, parse_shard_and_query
+from app.wildberries.parser_category import get_data_say_gex, parse_shard_and_query, get_data_dict
 from app.wildberries.database import save_to_db, validate_foreign_keys
 from app.utils.app_logger import get_logger
 from app.wildberries.dictionary import category_links
@@ -137,7 +137,7 @@ async def process_and_save_dict(session_maker):
     for category, url in category_links.items():
         
         logger.info(f"Processing category: {category}")
-        response = await get_data_say_gex(url)
+        response = await get_data_dict(url)
         #logger.info(f"Response {response}")
 
         if isinstance(response, list):
