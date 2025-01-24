@@ -20,6 +20,9 @@ class Product(BaseModel):
     logistics_price: int
     return_price: int
     link: str
+    subjectId: int
+    kindId: int
+    brandId: int
     img_url: Optional[str] = None
     # description: Optional[str] = None
     category: Optional[dict] = None

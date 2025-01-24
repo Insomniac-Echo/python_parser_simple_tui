@@ -13,41 +13,42 @@ logger = get_logger(__name__)
 
 #Переписать кривые exception, который я писал видимо из дурки
 #Основная функция-обработчик парсера.
-async def get_data_say_gex(url: str, session: AsyncSession, max_retries: int = 1):
+async def get_data_say_gex(url: str, session: AsyncSession, max_retries: int = 12):
     retries = 0
     while retries <= max_retries:
-        response = await session.get(url, impersonate="chrome")
-        if response.status_code == 200:
-            try:
-                text = response.text
-                data = json.loads(text)
-                verify = await data_validation(data)
-                if verify is not None:
-                    logger.info("Success data extraction.")
-                    return await get_details_from_json(session, data)
-                else:
-                    logger.error(f"Data validation failed. Retrying ({retries + 1}/{max_retries})...")
+        try:
+            response = await session.get(url, impersonate="chrome")
+            if response.status_code == 200:
+                try:
+                    text = response.text
+                    data = json.loads(text)
+                    verify = await data_validation(data)
+                    if verify is not None:
+                        logger.info("Success data extraction.")
+                        return await get_details_from_json(session, data)
+                    else:
+                        logger.error(f"Data validation failed. Retrying ({retries + 1}/{max_retries})...")
+                        retries += 1
+                        await asyncio.sleep(3)
+                except json.JSONDecodeError:
+                    logger.error("JSON decode error.")
                     retries += 1
                     await asyncio.sleep(3)
-            except json.JSONDecodeError:
-                logger.error("JSON decode error.")
-                retries += 1
+                except DataValidationError:
+                    logger.error(f"Data validation error. Retrying ({retries + 1}/{max_retries})...")
+                    retries += 1
+                    await asyncio.sleep(3)
+            elif response.status_code == 429:
+                logger.warning("Rate limit exceeded. Retrying in 3 seconds.")
                 await asyncio.sleep(3)
-            except DataValidationError:
-                logger.error(f"Data validation error. Retrying ({retries + 1}/{max_retries})...")
-                retries += 1
-                await asyncio.sleep(3)
-        elif response.status_code == 429:
-            if retries < max_retries:
-                logger.warning("Rate limit exceeded. Retrying in 2 seconds.")
-                await asyncio.sleep(2)
                 retries += 1
             else:
-                logger.error("Max retries reached for 429 status code. Stopping.")
+                logger.error(f"Request error, status code is {response.status_code}")
                 return None
-        else:
-            logger.error(f"Request error, status code is {response.status_code}")
-            return None
+        except Exception as e:
+            logger.error(f"Unexpected error: {e}")
+            retries += 1
+            await asyncio.sleep(3)
 
     logger.error("Max retries reached. Exiting.")
     return None

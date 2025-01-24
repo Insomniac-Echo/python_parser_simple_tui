@@ -12,27 +12,31 @@ async def recursive_parse_category(category, base_url, session):
     page = 1
     while True:
         url = f"{base_url}&page={page}"
-        logger.info(f"Processing category: {category}, page: {page}")
+        logger.info(f"Processing category: {category}, page: {page}, URL: {url}")
 
-        response = await get_data_say_gex(url, session)
+        try:
+            response = await get_data_say_gex(url, session)
+            if response is None:
+                logger.error(f"Failed to fetch data for category {category}, page {page}. Stopping pagination.")
+                break
 
-        if response is None:
-            logger.error(f"Failed to fetch data for category {category}, page {page}. Stopping pagination.")
+            if isinstance(response, list):
+                items = response
+            elif isinstance(response, dict):
+                items = response.get("data", [])
+            else:
+                logger.error(f"Unexpected response format for category {category}: {type(response)}")
+                break
+
+            if not items:
+                logger.warning(f"No items found for category: {category}, page: {page}. Stopping pagination.")
+                break
+
+            yield items
+
+        except Exception as e:
+            logger.error(f"Error processing category {category}, page {page}: {e}")
             break
-
-        if isinstance(response, list):
-            items = response
-        elif isinstance(response, dict):
-            items = response.get("data", [])
-        else:
-            logger.error(f"Unexpected response format for category {category}: {type(response)}")
-            break
-
-        if not items:
-            logger.warning(f"No items found for category: {category}, page: {page}. Stopping pagination.")
-            break
-
-        yield items
 
         page += 1
 
@@ -56,11 +60,13 @@ async def process_and_save(session_maker):
                 if pair['query'] not in category_cache:
                     logger.info(f"Fetching category data for category: {pair['name']}")
                     if items:
-                        first_item = items[10]
+                        first_item = items[0]
                         subject_id = first_item.get("subjectId")
                         kind_id = first_item.get("kindId")
                         brand_id = first_item.get("brandId")
-
+                        # logger.info(f"subject_id: {subject_id}")
+                        # logger.info(f"kind_id: {kind_id}")
+                        # logger.info(f"brand_id: {brand_id}")
                         category = await get_category(
                             session,
                             first_item["id_src"],
@@ -79,6 +85,7 @@ async def process_and_save(session_maker):
                         category_cache[pair['query']] = None
 
                 category = category_cache.get(pair['query'])
+                # logger.info(f"category_popka: {category}")
 
                 for item in items:
                     trands_data.append({
@@ -121,7 +128,7 @@ async def process_and_save(session_maker):
                             "podcat_5_ru": podcats_ru[4] if len(podcats_ru) > 4 else None,
                             "podcat_5_eng": podcats_eng[4] if len(podcats_eng) > 4 else None,
                         }
-                        logger.info(f"category_row: {category_row}")
+                        # logger.info(f"category_row: {category_row}")
                         category_data.append(category_row)
 
             logger.info(f"Saving data for shard: {pair['shard']}")
