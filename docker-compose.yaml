@@ -13,15 +13,23 @@
 #      user: 
       restart: always
       mem_limit: 5g
+      env_file:
+        - .env
       build:
         context: .
       ports:
         - 8000:8000
       volumes:
         - '/dev/shm:/dev/shm'
+      develop:
+        watch:
+          - action: sync
+            path: .env
+            target: /app/.env
   volumes:
     myapp:
       external: True
+    
 
 # The commented out section below is an example of how to define a PostgreSQL
 # database that your application can use. `depends_on` tells Docker Compose to

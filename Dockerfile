@@ -30,6 +30,7 @@ ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
 ENV POETRY_VIRTUALENVS_CREATE=false
 
+
 ARG UID=10001
 RUN adduser \
     --disabled-password \
@@ -49,6 +50,9 @@ RUN poetry install --no-root
 
 USER appuser
 COPY --chown=appuser:appuser --chmod=755 . .
+
+COPY --chown=appuser:appuser .env /app/.env
+RUN chmod 600 /app/.env
 
 EXPOSE 8000
 

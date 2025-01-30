@@ -1,5 +1,6 @@
 import json
-
+import os
+from dotenv import load_dotenv
 from curl_cffi import requests
 from curl_cffi.requests import AsyncSession
 from pydantic import ValidationError
@@ -165,42 +166,66 @@ async def get_image_url(session, id, basket_number):
     return img_url
 
 #Функция для получения количества продаж, стороннее апи
-async def get_sales_quantity(session: AsyncSession, product_id: int):
+async def get_sales_quantity(session: AsyncSession, product_id: int, max_retries: int = 2):
 
-    url = f"https://api.likestats.io/extension/product/{product_id}/quantity"
+    retries = 0
+    while retries < max_retries:
+        url = f"https://api.likestats.io/extension/product/{product_id}/quantity"
 
-    headers = {
-    'Accept': '*/*',
-    'Accept-Language': 'ru-RU,ru;q=0.9,en-US;q=0.8,en;q=0.7',
-    'Connection': 'keep-alive',
-    'DNT': '1',
-    'Origin': 'https://www.wildberries.ru',
-    'Referer': f"https://www.wildberries.ru/catalog/{product_id}/detail.aspx",
-    'Sec-Fetch-Dest': 'empty',
-    'Sec-Fetch-Mode': 'cors',
-    'Sec-Fetch-Site': 'cross-site', 
-    'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36',
-    'authorization': 'Bearer -replace_token',
-    'sec-ch-ua': '"Not;A=Brand";v="24", "Chromium";v="128"',
-    'sec-ch-ua-mobile': '?0',
-    'sec-ch-ua-platform': '"Linux"',
-    }
+        load_dotenv(dotenv_path="/app/.env", override=True)
+        current_token = os.getenv("SALES_API_TOKEN")
 
-    try:
-        response = await session.get(url, headers=headers)
-        if response.status_code == 200:
-            data = response.json()
+        headers = {
+            'Accept': '*/*',
+            'Accept-Language': 'ru-RU,ru;q=0.9,en-US;q=0.8,en;q=0.7',
+            'Connection': 'keep-alive',
+            'DNT': '1',
+            'Origin': 'https://www.wildberries.ru',
+            'Referer': f"https://www.wildberries.ru/catalog/{product_id}/detail.aspx",
+            'Sec-Fetch-Dest': 'empty',
+            'Sec-Fetch-Mode': 'cors',
+            'Sec-Fetch-Site': 'cross-site',
+            'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36',
+            'authorization': f'Bearer {current_token}',
+            'sec-ch-ua': '"Not;A=Brand";v="24", "Chromium";v="128"',
+            'sec-ch-ua-mobile': '?0',
+            'sec-ch-ua-platform': '"Linux"',
+        }
 
-            sizes_data = data.get("sizes", [])
+        try:
+            response = await session.get(url, headers=headers)
+            if response.status_code == 200:
+                data = response.json()
+                sizes_data = data.get("sizes", [])
+                total_sales = sum(item.get("sales", 0) for item in sizes_data)
+                return total_sales, response.status_code
+            elif response.status_code == 401:
+                logger.error("Token expired. Waiting for a new token.")
+                new_token = await wait_for_new_token(current_token)
+                os.environ["SALES_API_TOKEN"] = new_token
+                retries += 1
+                continue
+            else:
+                logger.error(f"Failed to fetch sales data for product ID {product_id}. Status code: {response.status_code}")
+                return 0, response.status_code
+        except Exception as e:
+            logger.error(f"Error fetching sales data for product ID {product_id}: {e}")
+            return 0, 500
 
-            total_sales = sum(item.get("sales", 0) for item in sizes_data)
-            return total_sales
-        else:
-            logger.error(f"Failed to fetch sales data for product ID {product_id}. Status code: {response.status_code}")
-            return 0
-    except Exception as e:
-        logger.error(f"Error fetching sales data for product ID {product_id}: {e}")
-        return 0
+    logger.error(f"Max retries reached for product ID {product_id}. Exiting.")
+    return 0, 429
+
+async def wait_for_new_token(current_token):
+    logger.info("Token expired. Please update the SALES_API_TOKEN in the .env file to continue.")
+    while True:
+        load_dotenv(dotenv_path="/app/.env", override=True)
+        new_token = os.environ.get("SALES_API_TOKEN")
+        logger.info(f"new_token:{new_token}")
+        if new_token and new_token != current_token:
+            logger.info("New token detected. Resuming parsing.")
+            return new_token
+
+        await asyncio.sleep(5)
 
 #Функция для пост-обработки JSON данных о товарах,
 #возможно, в будущем будет deprecated из-за внедрения pydantic
@@ -217,7 +242,10 @@ async def get_details_from_json(session, response):
                 logger.warning(f"Failed to fetch image URL for product ID {data.get('id')}. Proceeding without image URL.")
                 img_url = ""
 
-            sales_quantity = await get_sales_quantity(session, data.get('id'))
+            sales_quantity, status_code = await get_sales_quantity(session, data.get('id'))
+
+            if status_code == 401:
+                raise Exception("Token expired. Please update the token.")
 
             on_stock = data.get('totalQuantity', 0)
 
