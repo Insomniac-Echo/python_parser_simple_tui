@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Float, Text, ForeignKey, TIMESTAMP, Index
+from sqlalchemy import Column, Integer, String, Float, Text, ForeignKey, TIMESTAMP, Index, func
 from sqlalchemy.ext.declarative import declarative_base
 
 Base = declarative_base()
@@ -19,6 +19,10 @@ class TrandsTable(Base):
     link = Column(Text)
     img_link = Column(Text)
     date_of = Column(TIMESTAMP)
+    Date_tmst = Column(
+        TIMESTAMP, 
+        server_default=func.now()
+    )
 
 # Таблица category_trands
 class CategoryTrandsTable(Base):
