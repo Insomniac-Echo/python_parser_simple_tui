@@ -123,6 +123,7 @@ celerybeat.pid
 
 # Environments
 .env
+.env.dev
 .venv
 env/
 venv/
@@ -183,3 +184,4 @@ all_data_json.json
 cookies.pkl
 app/yandex/yandex_test_json.py
 app/wildberries/trands.sql
+app/dev

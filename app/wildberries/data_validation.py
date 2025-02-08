@@ -1,4 +1,4 @@
-from app.wildberries.entities import DataValidationError, InvalidContentJSON
+from app.wildberries.entities import InvalidContentJSON
 from app.utils.app_logger import get_logger
 
 logger = get_logger(__name__)

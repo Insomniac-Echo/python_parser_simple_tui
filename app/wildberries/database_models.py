@@ -46,3 +46,11 @@ class CategoryTrandsTable(Base):
         Index('idx_category_trands_id_trands', 'id_trands'),
         Index('idx_category_trands_category_eng', 'category_eng'),
     )
+    
+# Таблица shard_query
+class ShardQueryTable(Base):
+    __tablename__ = 'shard_query'
+    id = Column(Integer, primary_key=True)
+    name = Column(String(500))
+    shard = Column(String(500))
+    query = Column(String(500))

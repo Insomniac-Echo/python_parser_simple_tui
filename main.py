@@ -1,34 +1,28 @@
 import asyncio
-import uvicorn
 from fastapi import FastAPI, HTTPException, BackgroundTasks
 from sbvirtualdisplay import Display
 from contextlib import asynccontextmanager
+from sqlalchemy.orm import sessionmaker
+from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 
 from app.wildberries.parser import get_data
-from app.wildberries.parser_category import get_data_say_gex
+from app.wildberries.database import init_db
+from app.wildberries.category_processor import process_and_save
 from app.ozon.parser import ozon_parser
 from app.yandex.parser import yandex_parser
 from app.utils.app_logger import get_logger
-
-from app.wildberries.database import init_db
-from app.wildberries.category_processor import process_and_save
-from sqlalchemy.orm import sessionmaker
-from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from app.middleware import TimingMiddleware
+from app.wildberries.shard_parse import parse_dump_shard
+from app.config import DATABASE_URL
 
+from app.dev.task_test import long_running_task
 
-# Нужно пробежаться по запросам и посмотреть, есть ли неоходимость что-либо скорректировать
 logger = get_logger(__name__)
 
-username='parser'
-password='testpass'
-host='127.0.0.1'
-port='3306'
-database = 'testdata'
-DATABASE_URL = f"mysql+aiomysql://{username}:{password}@{host}:{port}/{database}"
 engine = create_async_engine(DATABASE_URL, echo=True)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine, class_=AsyncSession)
 
+# Алгоритм, который выполняется при запуске веб-сервера
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     logger.info("Launching API and Virtual Display.")
@@ -58,6 +52,7 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(lifespan=lifespan)
 app.add_middleware(TimingMiddleware)
+task_storage = []
 
 async def background_task(task):
     try:
@@ -78,10 +73,45 @@ async def search_single_wb(query: str):
 async def search_category():
     try:
         logger.info("Category parse request start")
-        data = await process_and_save(SessionLocal)
-        return {"data": True}
+        await process_and_save(SessionLocal)
+        return {"parse_cycle_complete": True}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+    
+@app.get("/search/wb/category/token-add")
+async def token_add():
+    return {"add_token": True}
+
+@app.get("/search/wb/category/shard-query")
+async def parse_shard_and_dump():
+    await parse_dump_shard(SessionLocal)
+    return {"parsed-shard-and-query": True}
+
+@app.get("/search/wb/category/full-cycle-parse")
+async def full_cycle_parse():
+    return {"parse-task-created": True}
+
+@app.get("/search/wb/category/task-list")
+async def task_list():
+    return {"task-list": list(task_storage.keys())}
+
+@app.post("/start-task")
+async def start_task(task_id: str):
+    task = asyncio.create_task(get_data(task_id))
+    task_storage[task_id] = task
+    logger.info(f"Задача по парсингу запущена, запрос: {task_id}")
+    return {"status": f"Задача по парсингу запущена, запрос: {task_id}"}
+
+@app.post("/stop-task/{task_id}")
+async def stop_task(task_id: str):
+    task = task_storage.get(task_id)
+    if task and not task.done():
+        task.cancel(task_id)
+        task.pop(task_id, None)
+        logger.info(f"Задача остановлена: {task_id}")
+        return {"status": "Задача остановлена"}
+    logger.info("Задача не запущена")
+    return {"status": "Задача не запущена"}
 
 @app.post("/search/ozon")
 async def search_single_ozon(query: str, limit: int, background_tasks: BackgroundTasks):
@@ -104,6 +134,3 @@ async def search_single_yandex(query: str, limit: int, background_tasks: Backgro
         return {"query": query, "limit": limit, "data": data}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
-
-if __name__ == "__main__":
-    uvicorn.run("main:app", host="0.0.0.0", port=8000, workers=4)

@@ -1,7 +1,7 @@
 from sqlalchemy.ext.asyncio import AsyncEngine
 from sqlalchemy import insert
 from sqlalchemy.exc import IntegrityError
-from app.wildberries.database_models import Base, TrandsTable, CategoryTrandsTable
+from app.wildberries.database_models import Base, TrandsTable, CategoryTrandsTable, ShardQueryTable
 from app.utils.app_logger import get_logger
 from datetime import datetime
 
@@ -41,10 +41,14 @@ async def save_to_db(trands_data, category_data, session_maker):
                 logger.error(f"Error saving to database: {e}")
                 await session.rollback()
 
-def validate_foreign_keys(trands_data, category_data):
-    trands_ids = {trand["id_src"] for trand in trands_data}
-
-    category_data = [
-        category for category in category_data if category["id_trands"] in trands_ids
-    ]
-    return category_data
+async def dump_shard_query(data, session_maker):
+    async with session_maker() as session:
+        async with session.begin():
+            try:
+                shard_query = [ShardQueryTable(**item) for item in data]
+                session.add_all(shard_query)
+            except Exception as e:
+                session.rollback()
+                logger.error(f"Ошибка при сохранении: {e}")
+            finally:
+                session.close()

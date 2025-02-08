@@ -4,10 +4,13 @@ from starlette.middleware.base import BaseHTTPMiddleware
 from app.utils.app_logger import get_logger
 
 logger = get_logger(__name__)
-# По сути эта штука просто ловить запрос и замеряет время, импортируется прямиком основной код сервера
+
+# По сути эта штука просто ловит запрос и замеряет время,
+# импортируется прямиком в основной код сервера
 class TimingMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
-        # Проверяем, относится ли запрос к Wildberries (чтобы кетчить для замера времени ответа)
+        # Проверяем, относится ли запрос к Wildberries
+        # (чтобы кетчить для замера времени ответа)
         if request.url.path.startswith("/search/wb"):
             start_time = time.perf_counter()
             response = await call_next(request)

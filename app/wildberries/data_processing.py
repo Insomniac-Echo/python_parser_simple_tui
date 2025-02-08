@@ -8,34 +8,10 @@ import asyncio
 from app.utils.app_logger import get_logger
 from app.wildberries.utils import remove_emojis, get_basket_number
 from app.models import Product
+from app.config import SALES_API_TOKEN
 
 logger = get_logger(__name__)
 
-#Функция для получения данные в поле description товара.
-# async def get_description(session, id, basket_number, name):
-#     if basket_number in ["01"]:
-#         url = f"https://basket-{basket_number}.wbbasket.ru/vol{str(id)[:2]}/part{str(id)[:4]}/{str(id)}/info/ru/card.json"
-#     elif basket_number in ["02", "03", "04", "05"]:
-#         url = f"https://basket-{basket_number}.wbbasket.ru/vol{str(id)[:3]}/part{str(id)[:5]}/{str(id)}/info/ru/card.json"
-#     else:
-#         url = f"https://basket-{basket_number}.wbbasket.ru/vol{str(id)[:4]}/part{str(id)[:6]}/{str(id)}/info/ru/card.json"
-
-#     try:
-#         response = await session.get(url, impersonate="chrome")
-#         if response.status_code != 200:
-#             logger.error(f"Status code other than 200. Local or Server error? Status code: {response.status_code}")
-#             return None
-
-#         desc = response.json()   
-#         if "description" in desc:
-#             return desc["description"]
-#         else:
-#             logger.warning(f"Description not found for {name}")
-#             return None
-#     except (requests.exceptions.RequestException, json.JSONDecodeError) as e:
-#         logger.error(f"Error occurred: {e}")
-#         return None
-        
 #Функция для получения словаря категорий, требует доработки.
 async def get_category(session, id, brandid, subjectid, kindid, max_retries=3):
     url = f"https://www.wildberries.ru/webapi/product/{id}/data?subject={subjectid}&kind={kindid}&brand={brandid}"
@@ -93,67 +69,6 @@ async def get_category(session, id, brandid, subjectid, kindid, max_retries=3):
     logger.error(f"Max retries reached for product ID {id}.")
     return None
 
-
-async def get_category_dict(id, brandid, subjectid, kindid, max_retries=3):
-    async with requests.AsyncSession() as session:
-        
-        url = f"https://www.wildberries.ru/webapi/product/{id}/data?subject={subjectid}&kind={kindid}&brand={brandid}"
-        retries = 0
-
-        headers = {
-        'accept': '*/*',
-        'accept-language': 'ru-RU,ru;q=0.9,en-US;q=0.8,en;q=0.7',
-        'deviceid': 'site_99d04ef106944d24bee830f7f6e65aee',
-        'dnt': '1',
-        'priority': 'u=1, i',
-        'referer': f"https://www.wildberries.ru/catalog/{id}/detail.aspx",
-        'sec-ch-ua': '"Not;A=Brand";v="24", "Chromium";v="128"',
-        'sec-ch-ua-mobile': '?0',
-        'sec-ch-ua-platform': '"Linux"',
-        'sec-fetch-dest': 'empty',
-        'sec-fetch-mode': 'cors',
-        'sec-fetch-site': 'same-origin',
-        'user-agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36',
-        'x-requested-with': 'XMLHttpRequest',
-        'x-spa-version': '11.4.1',
-        }
-
-
-        while retries < max_retries:
-            try:
-                response = await session.get(url, impersonate="chrome", headers=headers, timeout=55)
-                if response.status_code == 404:
-                    logger.warning(f"Category not found for product ID {id}. Status code: {response.status_code}")
-                    return None
-                elif response.status_code != 200:
-                    logger.error(f"Status code other than 200 or 404. Local or Server error? Status code: {response.status_code}")
-                    return None
-
-                category = response.json()
-                if "value" in category:
-                    site_path = category["value"].get("data", {}).get("sitePath", [])
-                    parsed_data = {}
-                    for i, item in enumerate(site_path[:-1], start=1):
-                        key = f"name_{i}"
-                        key_eng = f"name_{i}_eng"
-                        name = item.get("name")
-                        page_url = item.get("pageUrl")
-                        if name and page_url:
-                            parsed_data[key] = name
-                            parsed_data[key_eng] = page_url.split('/')[-1]
-                    return parsed_data
-                else:
-                    logger.warning(f"Category not found for product ID {id}.")
-                    return None
-            except (requests.exceptions.RequestException, json.JSONDecodeError) as e:
-                retries += 1
-                logger.error(f"Error occurred while fetching category for product ID {id}: {e}. Retrying ({retries}/{max_retries}).")
-                await asyncio.sleep(10)
-
-        logger.error(f"Max retries reached for product ID {id}.")
-        return None
-
-
 #Функция для получения ссылки на изображение карточки товара.
 async def get_image_url(session, id, basket_number):
     if basket_number in ["01"]:
@@ -172,9 +87,6 @@ async def get_sales_quantity(session: AsyncSession, product_id: int, max_retries
     while retries < max_retries:
         url = f"https://api.likestats.io/extension/product/{product_id}/quantity"
 
-        load_dotenv(dotenv_path="/app/.env", override=True)
-        current_token = os.getenv("SALES_API_TOKEN")
-
         headers = {
             'Accept': '*/*',
             'Accept-Language': 'ru-RU,ru;q=0.9,en-US;q=0.8,en;q=0.7',
@@ -186,7 +98,7 @@ async def get_sales_quantity(session: AsyncSession, product_id: int, max_retries
             'Sec-Fetch-Mode': 'cors',
             'Sec-Fetch-Site': 'cross-site',
             'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36',
-            'authorization': f'Bearer {current_token}',
+            'authorization': f'Bearer {SALES_API_TOKEN}',
             'sec-ch-ua': '"Not;A=Brand";v="24", "Chromium";v="128"',
             'sec-ch-ua-mobile': '?0',
             'sec-ch-ua-platform': '"Linux"',
@@ -201,7 +113,7 @@ async def get_sales_quantity(session: AsyncSession, product_id: int, max_retries
                 return total_sales, response.status_code
             elif response.status_code == 401:
                 logger.error("Token expired. Waiting for a new token.")
-                new_token = await wait_for_new_token(current_token)
+                new_token = await wait_for_new_token(SALES_API_TOKEN)
                 os.environ["SALES_API_TOKEN"] = new_token
                 retries += 1
                 continue
