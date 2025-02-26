@@ -8,7 +8,7 @@ import asyncio
 from app.utils.app_logger import get_logger
 from app.wildberries.utils import remove_emojis, get_basket_number
 from app.models import Product
-from app.config import SALES_API_TOKEN
+from app.config import SALES_API_TOKEN, LIKESTATS_EMAIL, LIKESTATS_PASS
 
 logger = get_logger(__name__)
 
@@ -97,9 +97,9 @@ async def get_sales_quantity(session: AsyncSession, product_id: int, max_retries
             'Sec-Fetch-Dest': 'empty',
             'Sec-Fetch-Mode': 'cors',
             'Sec-Fetch-Site': 'cross-site',
-            'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36',
-            'authorization': f'Bearer {SALES_API_TOKEN}',
-            'sec-ch-ua': '"Not;A=Brand";v="24", "Chromium";v="128"',
+            'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36',
+            'authorization': f'Bearer {os.getenv("SALES_API_TOKEN")}',
+            'sec-ch-ua': '"Not;A=Brand";v="24", "Chromium";v="130"',
             'sec-ch-ua-mobile': '?0',
             'sec-ch-ua-platform': '"Linux"',
         }
@@ -113,8 +113,10 @@ async def get_sales_quantity(session: AsyncSession, product_id: int, max_retries
                 return total_sales, response.status_code
             elif response.status_code == 401:
                 logger.error("Token expired. Waiting for a new token.")
-                new_token = await wait_for_new_token(SALES_API_TOKEN)
-                os.environ["SALES_API_TOKEN"] = new_token
+                new_token = await get_new_token(session)
+                if not new_token:
+                    logger.error("Failed to refresh token")
+                    return 0, response.status_code
                 retries += 1
                 continue
             else:
@@ -127,17 +129,43 @@ async def get_sales_quantity(session: AsyncSession, product_id: int, max_retries
     logger.error(f"Max retries reached for product ID {product_id}. Exiting.")
     return 0, 429
 
-async def wait_for_new_token(current_token):
-    logger.info("Token expired. Please update the SALES_API_TOKEN in the .env file to continue.")
-    while True:
-        load_dotenv(dotenv_path="/app/.env", override=True)
-        new_token = os.environ.get("SALES_API_TOKEN")
-        logger.info(f"new_token:{new_token}")
-        if new_token and new_token != current_token:
-            logger.info("New token detected. Resuming parsing.")
-            return new_token
 
-        await asyncio.sleep(5)
+async def get_new_token(session: AsyncSession):
+    url = "https://api.likestats.io/user/login"
+    headers = {
+        'Accept': 'application/json, text/plain, */*',
+        'Accept-Language': 'ru-RU,ru;q=0.9,en-US;q=0.8,en;q=0.7',
+        'Content-Type': 'application/json',
+        'DNT': '1',
+        'Origin': 'https://my.likestats.io',
+        'Referer': 'https://my.likestats.io/',
+        'Sec-Fetch-Dest': 'empty',
+        'Sec-Fetch-Mode': 'cors',
+        'Sec-Fetch-Site': 'same-site',
+        'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36',
+    }
+    json_data = {
+        'email': f'{LIKESTATS_EMAIL}',
+        'password': f'{LIKESTATS_PASS}',
+        'remember': False,
+        'redirect': '</>',
+        'oauth_token': None,
+    }
+
+    try:
+        response = await session.post(url, headers=headers, json=json_data)
+        response.raise_for_status()
+        token_data = response.json()
+        new_token = token_data.get("token")
+        if new_token:
+            os.environ["SALES_API_TOKEN"] = new_token
+            logger.info("New token acquired successfully")
+            return new_token
+        logger.error("Token not found in response")
+        return None
+    except Exception as e:
+        logger.error(f"Failed to fetch new token: {e}")
+        return None
 
 #Функция для пост-обработки JSON данных о товарах,
 #возможно, в будущем будет deprecated из-за внедрения pydantic

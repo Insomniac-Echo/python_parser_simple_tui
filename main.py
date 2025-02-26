@@ -15,7 +15,7 @@ from app.middleware import TimingMiddleware
 from app.wildberries.shard_parse import parse_dump_shard
 from app.config import DATABASE_URL
 
-from app.dev.task_test import long_running_task
+#from app.dev.task_test import long_running_task
 
 logger = get_logger(__name__)
 
