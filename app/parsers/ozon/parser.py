@@ -11,8 +11,8 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
 from urllib.parse import urlparse, urlunparse
 from bs4 import BeautifulSoup
-from app.ozon.entities import InvalidCardProccesing
-from app.utils.app_logger import get_logger
+from app.parsers.ozon.entities import InvalidCardProccesing
+from app.core.app_logger import get_logger
 import gc
 
 logger = get_logger(__name__)

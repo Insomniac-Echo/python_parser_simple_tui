@@ -1,5 +1,5 @@
-from app.wildberries.entities import InvalidContentJSON
-from app.utils.app_logger import get_logger
+from app.parsers.wildberries.entities import InvalidContentJSON
+from app.core.app_logger import get_logger
 
 logger = get_logger(__name__)
 

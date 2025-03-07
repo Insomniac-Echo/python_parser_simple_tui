@@ -1,8 +1,8 @@
-from app.wildberries.parser_category import get_data_say_gex, parse_shard_and_query
-from app.wildberries.database import save_to_db
-from app.utils.app_logger import get_logger
+from app.parsers.wildberries.parser_category import get_data_say_gex, parse_shard_and_query
+from app.parsers.wildberries.dump_to_db import save_to_db
+from app.core.app_logger import get_logger
 from curl_cffi import requests
-from app.wildberries.data_processing import get_category
+from app.parsers.wildberries.data_processing import get_category
 
 logger = get_logger(__name__)
 

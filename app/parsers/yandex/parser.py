@@ -1,9 +1,9 @@
 from seleniumwire2 import webdriver
-from selenium.webdriver.firefox.options import Options
+#from selenium.webdriver.firefox.options import Options
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.common.desired_capabilities import DesiredCapabilities
+#from selenium.webdriver.common.desired_capabilities import DesiredCapabilities
 from selenium.common.exceptions import TimeoutException
 from selenium.webdriver.common.keys import Keys
 from curl_cffi import requests
@@ -15,7 +15,7 @@ from urllib.parse import urlparse, parse_qs
 from bs4 import BeautifulSoup
 import pickle
 import traceback
-from app.utils.app_logger import get_logger
+from app.core.app_logger import get_logger
 import gc
 
 logger = get_logger(__name__)

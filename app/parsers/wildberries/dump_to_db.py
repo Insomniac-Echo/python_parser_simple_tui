@@ -1,18 +1,14 @@
-from sqlalchemy.ext.asyncio import AsyncEngine
 from sqlalchemy import insert
 from sqlalchemy.exc import IntegrityError
-from app.wildberries.database_models import Base, TrandsTable, CategoryTrandsTable, ShardQueryTable
-from app.utils.app_logger import get_logger
+
+from app.models.wb.category import CategoryTrandsTable
+from app.models.wb.shard_query import ShardQueryTable
+from app.models.wb.trands import TrandsTable
+
 from datetime import datetime
+from app.core.app_logger import get_logger
 
 logger = get_logger(__name__)
-
-# Основные функции в бд, вряд ли потребуется вмешательство, но лучше тоже посмотреть save_to_db
-# Инициализация базы данных
-async def init_db(engine: AsyncEngine):
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
-    logger.info("Database initialized successfully.")
 
 async def save_to_db(trands_data, category_data, session_maker):
     async with session_maker() as session:
@@ -45,10 +41,10 @@ async def dump_shard_query(data, session_maker):
     async with session_maker() as session:
         async with session.begin():
             try:
-                shard_query = [ShardQueryTable(**item) for item in data]
-                session.add_all(shard_query)
+                #shard_query = [ShardQueryTable(**item) for item in data]
+                #await session.add_all(shard_query)
+                shard_query = insert(ShardQueryTable).values(data)
+                await session.execute(shard_query)
             except Exception as e:
-                session.rollback()
+                await session.rollback()
                 logger.error(f"Ошибка при сохранении: {e}")
-            finally:
-                session.close()

@@ -2,10 +2,10 @@ import json
 import asyncio
 
 from curl_cffi.requests import AsyncSession
-from app.wildberries.entities import DataValidationError
-from app.wildberries.data_validation import data_validation
-from app.wildberries.data_processing import get_details_from_json
-from app.utils.app_logger import get_logger
+from app.parsers.wildberries.entities import DataValidationError
+from app.parsers.wildberries.data_validation import data_validation
+from app.parsers.wildberries.data_processing import get_details_from_json
+from app.core.app_logger import get_logger
 
 logger = get_logger(__name__)
 

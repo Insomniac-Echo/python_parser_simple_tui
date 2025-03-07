@@ -1,14 +1,13 @@
 import json
 import os
-from dotenv import load_dotenv
 from curl_cffi import requests
 from curl_cffi.requests import AsyncSession
 from pydantic import ValidationError
 import asyncio
-from app.utils.app_logger import get_logger
-from app.wildberries.utils import remove_emojis, get_basket_number
-from app.models import Product
-from app.config import SALES_API_TOKEN, LIKESTATS_EMAIL, LIKESTATS_PASS
+from app.core.app_logger import get_logger
+from app.parsers.wildberries.utils import remove_emojis, get_basket_number
+
+from app.core.config import SALES_API_TOKEN, LIKESTATS_EMAIL, LIKESTATS_PASS
 
 logger = get_logger(__name__)
 
@@ -98,7 +97,7 @@ async def get_sales_quantity(session: AsyncSession, product_id: int, max_retries
             'Sec-Fetch-Mode': 'cors',
             'Sec-Fetch-Site': 'cross-site',
             'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36',
-            'authorization': f'Bearer {os.getenv("SALES_API_TOKEN")}',
+            'authorization': f'Bearer {os.getenv(SALES_API_TOKEN)}',
             'sec-ch-ua': '"Not;A=Brand";v="24", "Chromium";v="130"',
             'sec-ch-ua-mobile': '?0',
             'sec-ch-ua-platform': '"Linux"',
@@ -214,8 +213,9 @@ async def get_details_from_json(session, response):
                 'on_stock': on_stock,
                 'count_sales': sales_quantity,
             }
-            product = Product(**product_properties)
-            data_list.append(product.model_dump())
+            #product = Product(**product_properties)
+            data_list.append(product_properties)
+            
 
         except ValidationError as e:
             logger.error(f"Validation error for product {data.get('id')}: {e}")

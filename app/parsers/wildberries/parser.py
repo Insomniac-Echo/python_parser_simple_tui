@@ -2,12 +2,11 @@ import json
 import asyncio
 
 from curl_cffi.requests import AsyncSession
-from pydantic import ValidationError
 
-from app.wildberries.entities import DataValidationError
-from app.wildberries.data_validation import data_validation
-from app.wildberries.data_processing import get_details_from_json
-from app.utils.app_logger import get_logger
+from app.parsers.wildberries.entities import DataValidationError
+from app.parsers.wildberries.data_validation import data_validation
+from app.parsers.wildberries.data_processing import get_details_from_json
+from app.core.app_logger import get_logger
 
 logger = get_logger(__name__)
 
@@ -17,8 +16,7 @@ async def get_data(query):
     url = fr'https://search.wb.ru/exactmatch/ru/common/v7/search?ab_testid=rerank_ksort_promo&appType=1&curr=rub&dest=-284542&query={query}&resultset=catalog&sort=popular&spp=30&suppressSpellcheck=false'
     
     async with AsyncSession() as session:
-        while True:    
-            await asyncio.sleep(60)
+        while True:
             response = await session.get(url, impersonate="chrome")     
             if response.status_code == 200:
                 try:

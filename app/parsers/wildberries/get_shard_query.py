@@ -3,8 +3,8 @@ import json
 from curl_cffi.requests import AsyncSession
 from curl_cffi import requests
 
-from app.utils.app_logger import get_logger
-from app.wildberries.database import dump_shard_query
+from app.core.app_logger import get_logger
+from app.parsers.wildberries.dump_to_db import dump_shard_query
 
 logger = get_logger(__name__)
 shard_query_seo = []
