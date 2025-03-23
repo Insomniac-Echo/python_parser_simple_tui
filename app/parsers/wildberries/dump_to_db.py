@@ -41,10 +41,9 @@ async def dump_shard_query(data, session_maker):
     async with session_maker() as session:
         async with session.begin():
             try:
-                #shard_query = [ShardQueryTable(**item) for item in data]
-                #await session.add_all(shard_query)
-                shard_query = insert(ShardQueryTable).values(data)
-                await session.execute(shard_query)
+                shard_query = [ShardQueryTable(**item) for item in data]
+                session.add_all(shard_query)
+                await session.commit()
             except Exception as e:
                 await session.rollback()
                 logger.error(f"Ошибка при сохранении: {e}")

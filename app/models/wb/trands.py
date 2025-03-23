@@ -1,26 +1,25 @@
-from sqlalchemy import Column, Integer, String, Float, Text, TIMESTAMP, func
-from sqlalchemy.orm import registry
+from sqlalchemy import Text, TIMESTAMP, func
+from sqlalchemy.orm import Mapped
+from sqlalchemy.orm import mapped_column
 
-mapper_registry = registry()
+from app.models.wb.base import Base
 
 # Таблица trands
-class TrandsTable:
+class TrandsTable(Base):
     __tablename__ = 'trands'
-    id = Column(Integer, primary_key=True, autoincrement=True)
-    id_src = Column(Integer, index=True)
-    name = Column(String(500))
-    rating = Column(Float)
-    reviewRating = Column(Float)
-    feedbacks = Column(Integer)
-    basic_price = Column(Integer)
-    product_price = Column(Integer)
-    total_price = Column(Integer)
-    count_sales = Column(Integer)
-    on_stock = Column(Integer)
-    link = Column(Text)
-    img_link = Column(Text)
-    date_of = Column(TIMESTAMP)
-    Date_tmst = Column(
-        TIMESTAMP, 
-        server_default=func.now()
-    )
+    
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    id_src: Mapped[int] = mapped_column( index=True)
+    name: Mapped[str]
+    rating: Mapped[float]
+    reviewRating: Mapped[float]
+    feedbacks: Mapped[int]
+    basic_price: Mapped[int]
+    product_price: Mapped[int]
+    total_price: Mapped[int]
+    count_sales: Mapped[int]
+    on_stock: Mapped[int]
+    link: Mapped[str] = mapped_column(Text)
+    img_link: Mapped[str] = mapped_column(Text)
+    date_of: Mapped[str] = mapped_column(TIMESTAMP)
+    Date_tmst: Mapped[str] = mapped_column(TIMESTAMP ,server_default=func.now())
