@@ -59,4 +59,4 @@ EXPOSE 8000
 RUN Xvfb :99 -screen 0 1600x900x24 > /dev/null 2>&1 & \
     export DISPLAY=:99
 
-CMD ["fastapi", "run", "app/api/main.py", "--port", "8000"]
+CMD ["fastapi", "run", "app/api/main.py", "--port", "8000", "--host", "localhost"]
