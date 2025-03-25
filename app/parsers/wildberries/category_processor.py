@@ -10,6 +10,9 @@ from app.parsers.wildberries.data_processing import get_category
 
 logger = get_logger(__name__)
 
+category_cache = {}
+category_cache_lock = asyncio.Lock()
+
 async def recursive_parse_category(category, base_url, session):
     page = 1
     while True:
@@ -149,6 +152,29 @@ async def worker(worker_id, task_queue, session_maker):
                 base_url = f"https://catalog.wb.ru/catalog/{pair['shard']}/v2/catalog?ab_testing=false&appType=1&{pair['query']}&curr=rub&dest=-284542&hide_dtype=10&lang=ru&sort=popular&spp=30"
 
                 async for items in recursive_parse_category(pair['name'], base_url, session):
+                    async with category_cache_lock:
+                        if pair['query'] not in category_cache:
+                            logger.info(f"Fetching category data for category: {pair['name']}")
+                            if items:
+                                first_item = items[0]
+                                subject_id = first_item.get("subjectId")
+                                kind_id = first_item.get("kindId")
+                                brand_id = first_item.get("brandId")
+                                category = await get_category(
+                                    session,
+                                    first_item["id_src"],
+                                    brand_id,
+                                    subject_id,
+                                    kind_id
+                                )
+
+                                if category:
+                                    category_cache[pair['query']] = category  # кэшируем данные
+                                    logger.info(f"{category_cache}")
+                                else:
+                                    logger.warning(f"Failed to fetch category data for category: {pair['name']}")
+                                    category_cache[pair['query']] = None
+
                     for item in items:
                         trands_data.append({
                             "id_src": item["id_src"],
@@ -165,14 +191,6 @@ async def worker(worker_id, task_queue, session_maker):
                             "img_link": item["img_url"],
                         })
 
-                        category = await get_category(
-                            session,
-                            item["id_src"],
-                            item.get("brandId"),
-                            item.get("subjectId"),
-                            item.get("kindId"),
-                        )
-
                         if category:
                             category_row = {
                                 "id_trands": item["id_src"],
@@ -180,7 +198,14 @@ async def worker(worker_id, task_queue, session_maker):
                                 "category_eng": category.get("name_1_eng", ""),
                                 "podcat_1_ru": category.get("name_2", ""),
                                 "podcat_1_eng": category.get("name_2_eng", ""),
-                                # Добавьте остальные подкатегории, если нужно
+                                "podcat_2_ru": category.get("name_3_eng", ""),
+                                "podcat_2_eng": category.get("name_3", ""),
+                                "podcat_3_ru": category.get("name_4", ""),
+                                "podcat_3_eng": category.get("name_4_eng", ""),
+                                "podcat_4_ru": category.get("name_5", ""),
+                                "podcat_4_eng": category.get("name_5_eng", ""),
+                                "podcat_5_ru": category.get("name_6", ""),
+                                "podcat_5_eng": category.get("name_6_eng", ""),
                             }
                             category_data.append(category_row)
 

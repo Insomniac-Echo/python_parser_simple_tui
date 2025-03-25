@@ -1,4 +1,4 @@
-from sqlalchemy import Text, TIMESTAMP, func
+from sqlalchemy import Text, TIMESTAMP, func, String
 from sqlalchemy.orm import Mapped
 from sqlalchemy.orm import mapped_column
 
@@ -10,7 +10,7 @@ class TrandsTable(Base):
     
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     id_src: Mapped[int] = mapped_column( index=True)
-    name: Mapped[str]
+    name: Mapped[str] = mapped_column(String(255))
     rating: Mapped[float]
     reviewRating: Mapped[float]
     feedbacks: Mapped[int]
