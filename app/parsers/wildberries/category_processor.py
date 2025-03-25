@@ -1,7 +1,11 @@
+import asyncio
 from app.parsers.wildberries.parser_category import get_data_say_gex, parse_shard_and_query
 from app.parsers.wildberries.dump_to_db import save_to_db
 from app.core.app_logger import get_logger
 from curl_cffi import requests
+from sqlalchemy.ext.asyncio import AsyncSession
+from app.models.wb.shard_query import ShardQueryTable
+from sqlalchemy.future import select
 from app.parsers.wildberries.data_processing import get_category
 
 logger = get_logger(__name__)
@@ -127,3 +131,94 @@ async def process_and_save(session_maker):
             logger.info(f"Saving data for shard: {pair['shard']}")
             await save_to_db(trands_data, category_data, session_maker)
     logger.info("All categories processed and saved.")
+
+
+#тест
+async def worker(worker_id, task_queue, session_maker):
+    async with requests.AsyncSession() as session:
+        while True:
+            pair = await task_queue.get()
+            if pair is None:  # Завершение работы воркера
+                logger.info(f"Worker {worker_id} shutting down.")
+                break
+
+            logger.info(f"Worker {worker_id} processing shard: {pair['shard']}, query: {pair['query']}")
+            try:
+                trands_data = []
+                category_data = []
+                base_url = f"https://catalog.wb.ru/catalog/{pair['shard']}/v2/catalog?ab_testing=false&appType=1&{pair['query']}&curr=rub&dest=-284542&hide_dtype=10&lang=ru&sort=popular&spp=30"
+
+                async for items in recursive_parse_category(pair['name'], base_url, session):
+                    for item in items:
+                        trands_data.append({
+                            "id_src": item["id_src"],
+                            "name": item["name"],
+                            "rating": item["rating"],
+                            "reviewRating": item["reviewRating"],
+                            "feedbacks": item["feedbacks"],
+                            "basic_price": item["basic_price"],
+                            "product_price": item["product_price"],
+                            "total_price": item["total_price"],
+                            "count_sales": item["count_sales"],
+                            "on_stock": item["on_stock"],
+                            "link": item["link"],
+                            "img_link": item["img_url"],
+                        })
+
+                        category = await get_category(
+                            session,
+                            item["id_src"],
+                            item.get("brandId"),
+                            item.get("subjectId"),
+                            item.get("kindId"),
+                        )
+
+                        if category:
+                            category_row = {
+                                "id_trands": item["id_src"],
+                                "category_ru": category.get("name_1", ""),
+                                "category_eng": category.get("name_1_eng", ""),
+                                "podcat_1_ru": category.get("name_2", ""),
+                                "podcat_1_eng": category.get("name_2_eng", ""),
+                                # Добавьте остальные подкатегории, если нужно
+                            }
+                            category_data.append(category_row)
+
+                await save_to_db(trands_data, category_data, session_maker)
+                logger.info(f"Worker {worker_id} finished processing shard: {pair['shard']}")
+            except Exception as e:
+                logger.error(f"Worker {worker_id} encountered an error: {e}")
+            finally:
+                task_queue.task_done()
+
+async def process_with_workers(session_maker, num_workers=8):
+    task_queue = asyncio.Queue()
+
+    # Получение данных из таблицы shard_query
+    async with session_maker() as db_session:
+        result = await db_session.execute(select(ShardQueryTable))
+        shard_queries = result.scalars().all()
+
+    # Добавление задач в очередь
+    for shard_query in shard_queries:
+        task_queue.put_nowait({
+            "shard": shard_query.shard,
+            "query": shard_query.query,
+            "name": shard_query.name,
+        })
+
+    # Создание воркеров
+    workers = [
+        asyncio.create_task(worker(worker_id, task_queue, session_maker))
+        for worker_id in range(num_workers)
+    ]
+
+    # Ожидание завершения всех задач
+    await task_queue.join()
+
+    # Завершение работы воркеров
+    for _ in range(num_workers):
+        task_queue.put_nowait(None)
+
+    await asyncio.gather(*workers)
+    logger.info("All workers have completed their tasks.")

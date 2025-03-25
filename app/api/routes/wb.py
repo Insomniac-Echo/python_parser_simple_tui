@@ -6,11 +6,13 @@ from app.parsers.wildberries.parser import get_data
 from app.parsers.wildberries.get_shard_query import parse_dump_shard
 from app.core.app_logger import get_logger
 from app.core.database import SessionLocal
+from app.parsers.wildberries.category_processor import process_with_workers
+
 
 logger = get_logger(__name__)
 router = APIRouter()
 
-task_storage = []
+task_storage = {}
 
 @router.get("/search")
 async def search_single_wb(query: str):
@@ -64,3 +66,28 @@ async def stop_task(task_id: str):
         return {"status": "Задача остановлена"}
     logger.info("Задача не запущена")
     return {"status": "Задача не запущена"}
+
+@router.post("/start-worker-task")
+async def start_worker_task(task_id: str):
+    if task_id in task_storage:
+        raise HTTPException(status_code=400, detail="Task is already running.")
+    
+    task = asyncio.create_task(process_with_workers(SessionLocal))
+    task_storage[task_id] = task
+    logger.info(f"Task {task_id} started.")
+    return {"status": f"Task {task_id} started."}
+
+@router.post("/stop-worker-task/{task_id}")
+async def stop_worker_task(task_id: str):
+    task = task_storage.get(task_id)
+    if not task:
+        raise HTTPException(status_code=404, detail="Task not found.")
+    
+    task.cancel()
+    task_storage.pop(task_id, None)
+    logger.info(f"Task {task_id} stopped.")
+    return {"status": f"Task {task_id} stopped."}
+
+@router.get("/list-tasks")
+async def list_task_storage():
+    return {"tasks": list(task_storage.keys())}
