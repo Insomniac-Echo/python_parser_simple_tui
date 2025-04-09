@@ -5,8 +5,9 @@ from dotenv import load_dotenv
 
 if os.getenv("ENV", "develop") != "prod":
     load_dotenv(".env.dev")
+def get_sales_token():
+    return os.getenv("SALES_API_TOKEN")
 
-SALES_API_TOKEN = os.getenv("SALES_API_TOKEN")
 DB_USERNAME = os.getenv("DB_USERNAME")
 DB_PASSWORD = os.getenv("DB_PASSWORD")
 DB_PORT = os.getenv("DB_PORT")

@@ -7,7 +7,7 @@ import asyncio
 from app.core.app_logger import get_logger
 from app.parsers.wildberries.utils import remove_emojis, get_basket_number
 
-from app.core.config import SALES_API_TOKEN, LIKESTATS_EMAIL, LIKESTATS_PASS
+from app.core.config import get_sales_token, LIKESTATS_EMAIL, LIKESTATS_PASS
 
 logger = get_logger(__name__)
 
@@ -97,7 +97,7 @@ async def get_sales_quantity(session: AsyncSession, product_id: int, max_retries
             'Sec-Fetch-Mode': 'cors',
             'Sec-Fetch-Site': 'cross-site',
             'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36',
-            'authorization': f'Bearer {SALES_API_TOKEN}',
+            'authorization': f'Bearer {get_sales_token()}',
             'sec-ch-ua': '"Not;A=Brand";v="24", "Chromium";v="130"',
             'sec-ch-ua-mobile': '?0',
             'sec-ch-ua-platform': '"Linux"',
@@ -158,8 +158,9 @@ async def get_new_token(session: AsyncSession):
         new_token = token_data.get("token")
         if new_token:
             os.environ["SALES_API_TOKEN"] = new_token
+            session.headers.update({'authorization': f'Bearer {new_token}'})
             logger.info("New token acquired successfully")
-            logger.info(f"{new_token}")
+            logger.info(f"New token: {get_sales_token()}")
             return new_token
         logger.error("Token not found in response")
         return None
