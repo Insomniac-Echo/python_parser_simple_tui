@@ -7,6 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.models.wb.shard_query import ShardQueryTable
 from sqlalchemy.future import select
 from app.parsers.wildberries.data_processing import get_category
+from app.api.routes.wb import task_storage
 
 logger = get_logger(__name__)
 
@@ -216,7 +217,7 @@ async def worker(worker_id, task_queue, session_maker):
             finally:
                 task_queue.task_done()
 
-async def process_with_workers(session_maker, num_workers=8):
+async def process_with_workers(task_id, session_maker, num_workers=16):
     task_queue = asyncio.Queue()
 
     # Получение данных из таблицы shard_query
@@ -247,3 +248,8 @@ async def process_with_workers(session_maker, num_workers=8):
 
     await asyncio.gather(*workers)
     logger.info("All workers have completed their tasks.")
+    
+    # Удаление задачи из хранилища
+    if task_id:
+        task_storage.pop(task_id, None)
+        logger.info(f"Task {task_id} removed from task_storage.")
