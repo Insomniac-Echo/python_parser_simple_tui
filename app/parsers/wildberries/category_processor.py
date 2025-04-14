@@ -7,7 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.models.wb.shard_query import ShardQueryTable
 from sqlalchemy.future import select
 from app.parsers.wildberries.data_processing import get_category
-from app.api.routes.wb import task_storage
+from app.core.task_storage import task_storage
 
 logger = get_logger(__name__)
 

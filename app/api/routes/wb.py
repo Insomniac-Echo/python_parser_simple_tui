@@ -1,18 +1,16 @@
 import asyncio
 from fastapi import APIRouter, HTTPException
 
-from app.parsers.wildberries.category_processor import process_and_save
+from app.parsers.wildberries.category_processor import process_and_save, process_with_workers
 from app.parsers.wildberries.parser import get_data
 from app.parsers.wildberries.get_shard_query import parse_dump_shard
 from app.core.app_logger import get_logger
 from app.core.database import SessionLocal
-from app.parsers.wildberries.category_processor import process_with_workers
-
+from app.core.task_storage import task_storage
 
 logger = get_logger(__name__)
 router = APIRouter()
 
-task_storage = {}
 
 @router.get("/search")
 async def search_single_wb(query: str):
