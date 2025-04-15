@@ -69,8 +69,8 @@ async def stop_task(task_id: str):
 async def start_worker_task(task_id: str):
     if task_id in task_storage:
         raise HTTPException(status_code=400, detail="Task is already running.")
-    
-    task = asyncio.create_task(process_with_workers(SessionLocal, task_id))
+
+    task = asyncio.create_task(process_with_workers(task_id, SessionLocal))
     task_storage[task_id] = task
     logger.info(f"Task {task_id} started.")
     return {"status": f"Task {task_id} started."}
