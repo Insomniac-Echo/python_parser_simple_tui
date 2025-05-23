@@ -103,37 +103,23 @@ async def process_and_save(session_maker):
                         "on_stock": item["on_stock"],
                         "link": item["link"],
                         "img_link": item["img_url"],
+
+                        "category_ru": category.get("name_1", ""),
+                        "category_eng": category.get("name_1_eng", ""),
+                        "podcat_1_ru": category.get("name_2", ""),
+                        "podcat_1_eng": category.get("name_2_eng", ""),
+                        "podcat_2_ru": category.get("name_3", ""),
+                        "podcat_2_eng": category.get("name_3_eng", ""),
+                        "podcat_3_ru": category.get("name_4", ""),
+                        "podcat_3_eng": category.get("name_4_eng", ""),
+                        "podcat_4_ru": category.get("name_5", ""),
+                        "podcat_4_eng": category.get("name_5_eng", ""),
+                        "podcat_5_ru": category.get("name_6", ""),
+                        "podcat_5_eng": category.get("name_6_eng", ""),
                     })
 
-                    if category:
-                        category_ru = category.get("name_1", "")
-                        logger.info(f"category_ru: {category_ru}")
-                        category_eng = category.get("name_1_eng", "")
-                        logger.info(f"category_eng: {category_eng}")
-                        podcats_ru = [category.get(f"name_{level}", "") for level in range(2, 7)] #от 2 до 7 потому что 1 это основная категория,остальное подкатегории
-                        logger.info(f"podcats_ru: {podcats_ru}")
-                        podcats_eng = [category.get(f"name_{level}_eng", "") for level in range(2, 7)]
-                        logger.info(f"podcats_eng: {podcats_eng}")
-
-                        category_row = {
-                            "id_trands": item["id_src"],
-                            "category_ru": category_ru,
-                            "category_eng": category_eng,
-                            "podcat_1_ru": podcats_ru[0] if len(podcats_ru) > 0 else None,
-                            "podcat_1_eng": podcats_eng[0] if len(podcats_eng) > 0 else None,
-                            "podcat_2_ru": podcats_ru[1] if len(podcats_ru) > 1 else None,
-                            "podcat_2_eng": podcats_eng[1] if len(podcats_eng) > 1 else None,
-                            "podcat_3_ru": podcats_ru[2] if len(podcats_ru) > 2 else None,
-                            "podcat_3_eng": podcats_eng[2] if len(podcats_eng) > 2 else None,
-                            "podcat_4_ru": podcats_ru[3] if len(podcats_ru) > 3 else None,
-                            "podcat_4_eng": podcats_eng[3] if len(podcats_eng) > 3 else None,
-                            "podcat_5_ru": podcats_ru[4] if len(podcats_ru) > 4 else None,
-                            "podcat_5_eng": podcats_eng[4] if len(podcats_eng) > 4 else None,
-                        }
-                        category_data.append(category_row)
-
             logger.info(f"Saving data for shard: {pair['shard']}")
-            await save_to_db(trands_data, category_data, session_maker)
+            await save_to_db(trands_data, session_maker)
     logger.info("All categories processed and saved.")
 
 
@@ -190,27 +176,22 @@ async def worker(worker_id, task_queue, session_maker):
                             "on_stock": item["on_stock"],
                             "link": item["link"],
                             "img_link": item["img_url"],
+
+                            "category_ru": category.get("name_1", ""),
+                            "category_eng": category.get("name_1_eng", ""),
+                            "podcat_1_ru": category.get("name_2", ""),
+                            "podcat_1_eng": category.get("name_2_eng", ""),
+                            "podcat_2_ru": category.get("name_3", ""),
+                            "podcat_2_eng": category.get("name_3_eng", ""),
+                            "podcat_3_ru": category.get("name_4", ""),
+                            "podcat_3_eng": category.get("name_4_eng", ""),
+                            "podcat_4_ru": category.get("name_5", ""),
+                            "podcat_4_eng": category.get("name_5_eng", ""),
+                            "podcat_5_ru": category.get("name_6", ""),
+                            "podcat_5_eng": category.get("name_6_eng", ""),
                         })
 
-                        if category:
-                            category_row = {
-                                "id_trands": item["id_src"],
-                                "category_ru": category.get("name_1", ""),
-                                "category_eng": category.get("name_1_eng", ""),
-                                "podcat_1_ru": category.get("name_2", ""),
-                                "podcat_1_eng": category.get("name_2_eng", ""),
-                                "podcat_2_ru": category.get("name_3_eng", ""),
-                                "podcat_2_eng": category.get("name_3", ""),
-                                "podcat_3_ru": category.get("name_4", ""),
-                                "podcat_3_eng": category.get("name_4_eng", ""),
-                                "podcat_4_ru": category.get("name_5", ""),
-                                "podcat_4_eng": category.get("name_5_eng", ""),
-                                "podcat_5_ru": category.get("name_6", ""),
-                                "podcat_5_eng": category.get("name_6_eng", ""),
-                            }
-                            category_data.append(category_row)
-
-                await save_to_db(trands_data, category_data, session_maker)
+                await save_to_db(trands_data, session_maker)
                 logger.info(f"Worker {worker_id} finished processing shard: {pair['shard']}")
             except Exception as e:
                 logger.error(f"Worker {worker_id} encountered an error: {e}")

@@ -33,7 +33,6 @@ class TrandsTable(Base):
     podcat_5_ru: Mapped[str] = mapped_column(VARCHAR(500), nullable=False)
     podcat_5_eng: Mapped[str] = mapped_column(VARCHAR(500), nullable=False)
     
-    date_of: Mapped[str] = mapped_column(TIMESTAMP)
     Date_tmst: Mapped[str] = mapped_column(TIMESTAMP ,server_default=func.now())
 
 
