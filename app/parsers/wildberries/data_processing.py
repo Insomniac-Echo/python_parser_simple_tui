@@ -16,21 +16,16 @@ async def get_category(session, id, brandid, subjectid, kindid, max_retries=3):
     url = f"https://www.wildberries.ru/webapi/product/{id}/data?subject={subjectid}&kind={kindid}&brand={brandid}"
     retries = 0
     headers = {
-        'accept': '*/*',
-        'accept-language': 'ru-RU,ru;q=0.9,en-US;q=0.8,en;q=0.7',
-        'deviceid': 'site_99d04ef106944d24bee830f7f6e65aee',
-        'dnt': '1',
-        'priority': 'u=1, i',
-        'referer': f"https://www.wildberries.ru/catalog/{id}/detail.aspx",
-        'sec-ch-ua': '"Not;A=Brand";v="24", "Chromium";v="128"',
-        'sec-ch-ua-mobile': '?0',
+        'Sec-GPC': '1',
         'sec-ch-ua-platform': '"Linux"',
-        'sec-fetch-dest': 'empty',
-        'sec-fetch-mode': 'cors',
-        'sec-fetch-site': 'same-origin',
-        'user-agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36',
+        'Referer': f'https://www.wildberries.ru/catalog/{id}/detail.aspx',
+        'sec-ch-ua': '"Not?A_Brand";v="99", "Chromium";v="130"',
+        'sec-ch-ua-mobile': '?0',
+        'deviceid': 'site_99d04ef106944d24bee830f7f6e65aee',
         'x-requested-with': 'XMLHttpRequest',
-        'x-spa-version': '11.4.1',
+        'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36',
+        'DNT': '1',
+        'x-spa-version': '11.25.3',
     }
 
     while retries < max_retries:
