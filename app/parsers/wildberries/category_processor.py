@@ -162,6 +162,7 @@ async def worker(worker_id, task_queue, session_maker):
                                     logger.warning(f"Failed to fetch category data for category: {pair['name']}")
                                     category_cache[pair['query']] = None
 
+                    category = category_cache.get(pair['query'])
                     for item in items:
                         trands_data.append({
                             "id_src": item["id_src"],
