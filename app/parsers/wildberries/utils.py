@@ -1,6 +1,6 @@
 import re
 
-#Функция для получения числа 'basket' для получения ссылки на изображение.
+#Функция для получения числа 'basket' для получения ссылки на изображение. ссылка в которой есть все значения баскетов https://static-basket-01.wbbasket.ru/vol2/site/j/spa/index.67ffbe076a38f980d963.js
 def get_basket_number(id):
     vol = id // 100000
     if 0 <= vol <= 143:
@@ -39,8 +39,28 @@ def get_basket_number(id):
         return "17" 
     elif 2838 <= vol <= 3053:
         return "18"
+    elif 3054 <= vol <= 3269:
+        return "19"
+    elif 3270 <= vol <= 3485:
+        return "20"
+    elif 3486 <= vol <= 3701:
+        return "21"
+    elif 3702 <= vol <= 3917:
+        return "22"
+    elif 3918 <= vol <= 4133:
+        return "23"
+    elif 4134 <= vol <= 4349:
+        return "24"
+    elif 4350 <= vol <= 4565:
+        return "25"
+    elif 4566 <= vol <= 4877:
+        return "26"
+    elif 4878 <= vol <= 5189:
+        return "27"
+    elif 5190 <= vol <= 5501:
+        return "28"
     else:
-        return "19" 
+        return "29" 
 
 #Как я понял, функция, которая обрабатывает одно из полей для исключения эмоджи.
 def remove_emojis(text):
