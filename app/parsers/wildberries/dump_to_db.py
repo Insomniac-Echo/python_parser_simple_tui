@@ -8,23 +8,26 @@ from datetime import datetime
 from app.core.app_logger import get_logger
 
 logger = get_logger(__name__)
-
+BATCH_SIZE = 100
 async def save_to_db(trands_data, session_maker):
     async with session_maker() as session:
         async with session.begin():
             try:
-                # Сохраняем trands
-                if trands_data:
-                    trands_data_ignore = insert(TrandsTable).values(trands_data).prefix_with("IGNORE")
-                    await session.execute(trands_data_ignore)
+                logger.info(f"Starting batch insert. Total items: {len(trands_data)}")
 
-                logger.info("All data saved successfully.")
+                # Разбиваем на пакеты
+                for i in range(0, len(trands_data), BATCH_SIZE):
+                    batch = trands_data[i:i + BATCH_SIZE]
+                    trands_data_ignore = insert(TrandsTable).values(batch).prefix_with("IGNORE")
+                    await session.execute(trands_data_ignore)
+                    logger.debug(f"Inserted batch {i // BATCH_SIZE + 1} of size {len(batch)}")
             except IntegrityError as e:
                 logger.error(f"Database integrity error: {e}")
                 await session.rollback()
             except Exception as e:
                 logger.error(f"Error saving to database: {e}")
                 await session.rollback()
+
 
 async def dump_shard_query(data, session_maker):
     async with session_maker() as session:

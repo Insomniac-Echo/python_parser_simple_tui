@@ -10,7 +10,12 @@ from app.models.wb.base import Base
 
 logger = get_logger(__name__)
 
-engine = create_async_engine(DATABASE_URL, echo=True)
+engine = create_async_engine(
+    DATABASE_URL,
+    echo=False,
+    pool_size=30,  # Размер пула
+    max_overflow=20,  # Дополнительные соединения при нагрузке
+)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine, class_=AsyncSession)
 
 

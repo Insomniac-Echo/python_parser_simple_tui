@@ -8,7 +8,7 @@ from app.models.wb.shard_query import ShardQueryTable
 from sqlalchemy.future import select
 from app.parsers.wildberries.data_processing import get_category
 from app.core.task_storage import task_storage
-
+import json
 logger = get_logger(__name__)
 
 category_cache = {}
@@ -91,18 +91,13 @@ async def process_and_save(session_maker):
 
                 for item in items:
                     trands_data.append({
-                        "id_src": item["id_src"],
-                        "name": item["name"],
-                        "rating": item["rating"],
-                        "reviewRating": item["reviewRating"],
-                        "feedbacks": item["feedbacks"],
-                        "basic_price": item["basic_price"],
-                        "product_price": item["product_price"],
-                        "total_price": item["total_price"],
-                        "count_sales": item["count_sales"],
-                        "on_stock": item["on_stock"],
-                        "link": item["link"],
-                        "img_link": item["img_url"],
+                        "id_src": item.get("id_src"),
+                        "link": item.get("link"),
+                        "img_link": item.get("img_link", ""),
+                        "size_on_model": item.get("size_on_model"),
+                        "model_parameters": item.get("model_parameters"),
+                        "sizes_table": item.get('sizes_table', {}),
+                        "reviews_data": item.get("reviews_data", {}),
 
                         "category_ru": category.get("name_1", ""),
                         "category_eng": category.get("name_1_eng", ""),
@@ -117,7 +112,6 @@ async def process_and_save(session_maker):
                         "podcat_5_ru": category.get("name_6", ""),
                         "podcat_5_eng": category.get("name_6_eng", ""),
                     })
-
             logger.info(f"Saving data for shard: {pair['shard']}")
             await save_to_db(trands_data, session_maker)
     logger.info("All categories processed and saved.")
@@ -165,18 +159,13 @@ async def worker(worker_id, task_queue, session_maker):
                     category = category_cache.get(pair['query'])
                     for item in items:
                         trands_data.append({
-                            "id_src": item["id_src"],
-                            "name": item["name"],
-                            "rating": item["rating"],
-                            "reviewRating": item["reviewRating"],
-                            "feedbacks": item["feedbacks"],
-                            "basic_price": item["basic_price"],
-                            "product_price": item["product_price"],
-                            "total_price": item["total_price"],
-                            "count_sales": item["count_sales"],
-                            "on_stock": item["on_stock"],
-                            "link": item["link"],
-                            "img_link": item["img_url"],
+                            "id_src": item.get("id_src"),
+                            "link": item.get("link"),
+                            "img_link": item.get("img_link", ""),
+                            "size_on_model": item.get("size_on_model"),
+                            "model_parameters": item.get("model_parameters"),
+                            "sizes_table": item.get('sizes_table', {}),
+                            "reviews_data": item.get("reviews_data", {}),
 
                             "category_ru": category.get("name_1", ""),
                             "category_eng": category.get("name_1_eng", ""),
@@ -191,7 +180,6 @@ async def worker(worker_id, task_queue, session_maker):
                             "podcat_5_ru": category.get("name_6", ""),
                             "podcat_5_eng": category.get("name_6_eng", ""),
                         })
-
                 await save_to_db(trands_data, session_maker)
                 logger.info(f"Worker {worker_id} finished processing shard: {pair['shard']}")
             except Exception as e:

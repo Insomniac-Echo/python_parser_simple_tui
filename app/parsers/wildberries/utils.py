@@ -61,6 +61,25 @@ def get_basket_number(id):
         return "28"
     else:
         return "29" 
+    
+def get_review_basket_number(photo_id):
+    vol = photo_id // 1000000
+    if 0 <= photo_id <= 4:
+        return "01"
+    elif 20 <= photo_id <= 35:
+        return "02"
+    elif 40 <= photo_id <= 54:
+        return "03"
+    elif 70 <= photo_id <= 113:
+        return "04"
+    elif 114 <= photo_id <= 125:
+        return "05"
+    elif 126 <= photo_id <= 137:
+        return "06"
+    elif 138 <= photo_id <= 149:
+        return "07"
+    else:
+        return "08"
 
 #Как я понял, функция, которая обрабатывает одно из полей для исключения эмоджи.
 def remove_emojis(text):
