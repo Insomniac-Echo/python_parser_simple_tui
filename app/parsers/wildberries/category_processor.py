@@ -3,7 +3,6 @@ from app.parsers.wildberries.parser_category import get_data_say_gex, parse_shar
 from app.parsers.wildberries.dump_to_db import save_to_db
 from app.core.app_logger import get_logger
 from curl_cffi import requests
-from sqlalchemy.ext.asyncio import AsyncSession
 from app.models.wb.shard_query import ShardQueryTable
 from sqlalchemy.future import select
 from app.parsers.wildberries.data_processing import get_category
@@ -57,8 +56,7 @@ async def process_and_save(session_maker):
 
         for pair in shard_query:
             trands_data = []
-            category_data = []
-
+            
             base_url = f"https://catalog.wb.ru/catalog/{pair['shard']}/v2/catalog?ab_testing=false&appType=1&{pair['query']}&curr=rub&dest=-284542&hide_dtype=10&lang=ru&sort=popular&spp=30"
 
             async for items in recursive_parse_category(pair['name'], base_url, session):
@@ -110,12 +108,6 @@ async def process_and_save(session_maker):
                         "podcat_1_eng": category.get("name_2_eng", ""),
                         "podcat_2_ru": category.get("name_3", ""),
                         "podcat_2_eng": category.get("name_3_eng", ""),
-                        "podcat_3_ru": category.get("name_4", ""),
-                        "podcat_3_eng": category.get("name_4_eng", ""),
-                        "podcat_4_ru": category.get("name_5", ""),
-                        "podcat_4_eng": category.get("name_5_eng", ""),
-                        "podcat_5_ru": category.get("name_6", ""),
-                        "podcat_5_eng": category.get("name_6_eng", ""),
                     })
 
             logger.info(f"Saving data for shard: {pair['shard']}")
@@ -135,7 +127,7 @@ async def worker(worker_id, task_queue, session_maker):
             logger.info(f"Worker {worker_id} processing shard: {pair['shard']}, query: {pair['query']}")
             try:
                 trands_data = []
-                category_data = []
+                
                 base_url = f"https://catalog.wb.ru/catalog/{pair['shard']}/v2/catalog?ab_testing=false&appType=1&{pair['query']}&curr=rub&dest=-284542&hide_dtype=10&lang=ru&sort=popular&spp=30"
 
                 async for items in recursive_parse_category(pair['name'], base_url, session):
@@ -184,12 +176,6 @@ async def worker(worker_id, task_queue, session_maker):
                             "podcat_1_eng": category.get("name_2_eng", ""),
                             "podcat_2_ru": category.get("name_3", ""),
                             "podcat_2_eng": category.get("name_3_eng", ""),
-                            "podcat_3_ru": category.get("name_4", ""),
-                            "podcat_3_eng": category.get("name_4_eng", ""),
-                            "podcat_4_ru": category.get("name_5", ""),
-                            "podcat_4_eng": category.get("name_5_eng", ""),
-                            "podcat_5_ru": category.get("name_6", ""),
-                            "podcat_5_eng": category.get("name_6_eng", ""),
                         })
 
                 await save_to_db(trands_data, session_maker)

@@ -4,7 +4,6 @@ from sqlalchemy.exc import IntegrityError
 from app.models.wb.shard_query import ShardQueryTable
 from app.models.wb.trands import TrandsTable
 
-from datetime import datetime
 from app.core.app_logger import get_logger
 
 logger = get_logger(__name__)
