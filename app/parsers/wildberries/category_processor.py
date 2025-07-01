@@ -88,27 +88,29 @@ async def process_and_save(session_maker):
                 category = category_cache.get(pair['query'])
 
                 for item in items:
-                    trands_data.append({
-                        "id_src": item["id_src"],
-                        "name": item["name"],
-                        "rating": item["rating"],
-                        "reviewRating": item["reviewRating"],
-                        "feedbacks": item["feedbacks"],
-                        "basic_price": item["basic_price"],
-                        "product_price": item["product_price"],
-                        "total_price": item["total_price"],
-                        "count_sales": item["count_sales"],
-                        "on_stock": item["on_stock"],
-                        "link": item["link"],
-                        "img_link": item["img_url"],
+                    if item["count_sales"] >= 5:
+                        logger.info(f"Processing item: {item['count_sales']}")
+                        trands_data.append({
+                            "id_src": item["id_src"],
+                            "name": item["name"],
+                            "rating": item["rating"],
+                            "reviewRating": item["reviewRating"],
+                            "feedbacks": item["feedbacks"],
+                            "basic_price": item["basic_price"],
+                            "product_price": item["product_price"],
+                            "total_price": item["total_price"],
+                            "count_sales": item["count_sales"],
+                            "on_stock": item["on_stock"],
+                            "link": item["link"],
+                            "img_link": item["img_url"],
 
-                        "category_ru": category.get("name_1", ""),
-                        "category_eng": category.get("name_1_eng", ""),
-                        "podcat_1_ru": category.get("name_2", ""),
-                        "podcat_1_eng": category.get("name_2_eng", ""),
-                        "podcat_2_ru": category.get("name_3", ""),
-                        "podcat_2_eng": category.get("name_3_eng", ""),
-                    })
+                            "category_ru": category.get("name_1", ""),
+                            "category_eng": category.get("name_1_eng", ""),
+                            "podcat_1_ru": category.get("name_2", ""),
+                            "podcat_1_eng": category.get("name_2_eng", ""),
+                            "podcat_2_ru": category.get("name_3", ""),
+                            "podcat_2_eng": category.get("name_3_eng", "")
+                        })
 
             logger.info(f"Saving data for shard: {pair['shard']}")
             await save_to_db(trands_data, session_maker)
@@ -156,27 +158,28 @@ async def worker(worker_id, task_queue, session_maker):
 
                     category = category_cache.get(pair['query'])
                     for item in items:
-                        trands_data.append({
-                            "id_src": item["id_src"],
-                            "name": item["name"],
-                            "rating": item["rating"],
-                            "reviewRating": item["reviewRating"],
-                            "feedbacks": item["feedbacks"],
-                            "basic_price": item["basic_price"],
-                            "product_price": item["product_price"],
-                            "total_price": item["total_price"],
-                            "count_sales": item["count_sales"],
-                            "on_stock": item["on_stock"],
-                            "link": item["link"],
-                            "img_link": item["img_url"],
+                        if item["count_sales"] >= 5:
+                            trands_data.append({
+                                "id_src": item["id_src"],
+                                "name": item["name"],
+                                "rating": item["rating"],
+                                "reviewRating": item["reviewRating"],
+                                "feedbacks": item["feedbacks"],
+                                "basic_price": item["basic_price"],
+                                "product_price": item["product_price"],
+                                "total_price": item["total_price"],
+                                "count_sales": item["count_sales"],
+                                "on_stock": item["on_stock"],
+                                "link": item["link"],
+                                "img_link": item["img_url"],
 
-                            "category_ru": category.get("name_1", ""),
-                            "category_eng": category.get("name_1_eng", ""),
-                            "podcat_1_ru": category.get("name_2", ""),
-                            "podcat_1_eng": category.get("name_2_eng", ""),
-                            "podcat_2_ru": category.get("name_3", ""),
-                            "podcat_2_eng": category.get("name_3_eng", ""),
-                        })
+                                "category_ru": category.get("name_1", ""),
+                                "category_eng": category.get("name_1_eng", ""),
+                                "podcat_1_ru": category.get("name_2", ""),
+                                "podcat_1_eng": category.get("name_2_eng", ""),
+                                "podcat_2_ru": category.get("name_3", ""),
+                                "podcat_2_eng": category.get("name_3_eng", ""),
+                            })
 
                 await save_to_db(trands_data, session_maker)
                 logger.info(f"Worker {worker_id} finished processing shard: {pair['shard']}")

@@ -11,7 +11,7 @@ logger = get_logger(__name__)
 
 #Переписать кривые exception, который я писал видимо из дурки
 #Основная функция-обработчик парсера.
-async def get_data_say_gex(url: str, session: AsyncSession, max_retries: int = 12):
+async def get_data_say_gex(url: str, session: AsyncSession, max_retries: int = 2):
     retries = 0
     while retries <= max_retries:
         try:
