@@ -8,9 +8,9 @@ class ShardQueryTable(Base):
     __tablename__ = "shard_query"
     
     id: Mapped[int] = mapped_column(primary_key=True)
-    name: Mapped[str] = mapped_column(VARCHAR)
-    shard: Mapped[str] = mapped_column(VARCHAR)
-    query: Mapped[str] = mapped_column(VARCHAR)
+    name: Mapped[str] = mapped_column(VARCHAR(256))
+    shard: Mapped[str] = mapped_column(VARCHAR(256))
+    query: Mapped[str] = mapped_column(VARCHAR(256))
     
     __table_args__ = (
         UniqueConstraint('shard', 'query', 'name', name='uix_shard_query_name'),
