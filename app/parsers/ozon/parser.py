@@ -67,7 +67,7 @@ def get_product_info(product_url):
         'user-agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
     }
 
-    raw_data = session.get("https://www.ozon.ru/api/composer-api.bx/page/json/v2?url=" + product_url, cookies=cookie2, headers=headers)
+    raw_data = session.get("https://www.ozon.ru/api/entrypoint-api.bx/page/json/v2?url=" + product_url, cookies=cookie2, headers=headers)
     json_data = json.loads(raw_data.content.decode())
     full_name = json_data["seo"]["title"]
     

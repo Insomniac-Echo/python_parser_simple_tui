@@ -185,6 +185,22 @@ async def get_details_from_json(session, response):
 
             on_stock = data.get('totalQuantity', 0)
 
+            price_obj = None
+            for size in data.get("sizes", []):
+                if "price" in size:
+                    price_obj = size["price"]
+                    break
+            
+            if price_obj is None:
+                logger.error(f"No price block found for product ID {data.get('id')}")
+                continue
+                
+            basic_price = (price_obj.get("basic") or 0) / 100
+            product_price = (price_obj.get("product") or 0) / 100
+            total_price = (price_obj.get("total") or 0) / 100
+            logistics_price = price_obj.get("logistics")
+            return_price = price_obj.get("return")
+
             product_properties = {
                 'id_src': data.get('id'),
                 'name': data.get('name'),
@@ -197,11 +213,11 @@ async def get_details_from_json(session, response):
                 'feedbacks': data.get('feedbacks'),
                 'reviewRating': data.get('reviewRating'),
                 'promoTextCard': data.get('promoTextCard'),
-                'basic_price': data.get('sizes', [{}])[0].get('price', {}).get('basic') / 100,
-                'product_price': data.get('sizes', [{}])[0].get('price', {}).get('product') / 100,
-                'total_price': data.get('sizes', [{}])[0].get('price', {}).get('total') / 100,
-                'logistics_price': data.get('sizes', [{}])[0].get('price', {}).get('logistics'),
-                'return_price': data.get('sizes', [{}])[0].get('price', {}).get('return'),
+                'basic_price': basic_price,
+                'product_price': product_price,
+                'total_price': total_price,
+                'logistics_price': logistics_price,
+                'return_price': return_price,
                 'link': f'https://www.wildberries.ru/catalog/{data.get("id")}/detail.aspx?targetUrl=BP',
                 'img_url': img_url,
                 'subjectId': data.get('subjectId'),
